@@ -1,0 +1,24 @@
+{
+  "name": "@crud-engine/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@crud-engine/db": "workspace:*",
+    "@crud-engine/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@crud-engine/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,3 @@
+{
+  "extends": "@crud-engine/config/tsconfig.base.json"
+}

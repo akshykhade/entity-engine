@@ -1,0 +1,41 @@
+import swagger from "@fastify/swagger";
+import swaggerUi from "@fastify/swagger-ui";
+import type { FastifyInstance } from "fastify";
+
+export async function registerOpenApi(fastify: FastifyInstance): Promise<void> {
+  await fastify.register(swagger, {
+    openapi: {
+      openapi: "3.1.0",
+      info: {
+        title: "CRUD Engine API",
+        description:
+          "Generic entity CRUD API powered by the ERP entity engine. Drizzle is an implementation detail — routes operate on entity registry metadata.",
+        version: "1.0.0",
+      },
+      servers: [
+        {
+          url: "http://localhost:3000",
+          description: "Local development",
+        },
+      ],
+      tags: [
+        {
+          name: "Entity Engine",
+          description: "Metadata-driven CRUD operations",
+        },
+        {
+          name: "Health",
+          description: "Service health checks",
+        },
+      ],
+    },
+  });
+
+  await fastify.register(swaggerUi, {
+    routePrefix: "/docs",
+    uiConfig: {
+      docExpansion: "list",
+      deepLinking: true,
+    },
+  });
+}

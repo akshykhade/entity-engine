@@ -1,0 +1,20 @@
+{
+  "name": "@crud-engine/permissions",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@crud-engine/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

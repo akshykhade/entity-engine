@@ -1,0 +1,20 @@
+{
+  "name": "@crud-engine/reports",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@crud-engine/db": "workspace:*"
+  },
+  "devDependencies": {
+    "@crud-engine/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

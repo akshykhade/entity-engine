@@ -1,0 +1,25 @@
+{
+  "name": "@crud-engine/engine",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@crud-engine/db": "workspace:*",
+    "@crud-engine/entities": "workspace:*",
+    "@crud-engine/permissions": "workspace:*",
+    "@crud-engine/workflows": "workspace:*",
+    "drizzle-orm": "^0.45.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@crud-engine/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

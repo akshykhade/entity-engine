@@ -1,0 +1,449 @@
+# Extensible ERP Platform — Backend Layer
+
+An ERP **platform** where business modules (CRM, Inventory, Purchase, Sales, Accounting, Manufacturing, Milk Collection, and more) are built from shared primitives—not bespoke applications per domain.
+
+**This repository is the backend layer:** entity definitions, metadata-driven generic API, entity service (CRUD, audit, permissions, workflows, actions), and database infrastructure. A separate frontend (generic UI engine, `EntityTable`, `EntityForm`, theming) is planned—not implemented here yet.
+
+Everything below describes the full platform vision; [implementation status](#implementation-status) reflects what exists in this repo today.
+
+## Core realization
+
+The goal is not to build an ERP application.
+
+The goal is to build an ERP platform where modules become **configuration** rather than custom development.
+
+## Inspiration
+
+Systems that solve similar problems:
+
+- ERPNext / Frappe
+- Odoo
+- Salesforce
+- ServiceNow
+
+## Important insight
+
+Most ERP systems are primarily **metadata**.
+
+| What developers often see | What ERP architects see |
+| --- | --- |
+| Forms | Entities |
+| Tables | Relationships |
+| APIs | Permissions |
+| Reports | Workflows |
+| | Actions |
+
+Everything else should be **generated**.
+
+## Source of truth
+
+Avoid stacking layers where each tier invents its own model:
+
+```
+Database → API → UI
+```
+
+```
+UI → API → Database
+```
+
+Prefer a single definition that flows downward:
+
+```
+Entity Definition
+      ↓
+  Database
+      ↓
+     API
+      ↓
+      UI
+      ↓
+  Workflow
+```
+
+The **entity definition** is the primary source of truth.
+
+## Platform primitives
+
+The platform is built around four primitives.
+
+### Entity
+
+Represents business data (Member, Invoice, Customer, Payment, Inventory …).
+
+```ts
+defineEntity({
+  name: "Member",
+  fields: {
+    memberCode: string(),
+    name: string(),
+    mobile: string(),
+  },
+});
+```
+
+### Workflow
+
+Represents lifecycle transitions (Draft, Approved, Rejected, Paid, Cancelled, …).
+
+```ts
+defineWorkflow({
+  entity: "Invoice",
+  states: ["Draft", "Approved", "Paid"],
+});
+```
+
+### Action
+
+Represents business commands (Approve Invoice, Cancel Invoice, Generate Payment, Send SMS, …).
+
+```ts
+defineAction({
+  entity: "Invoice",
+  name: "Approve",
+});
+```
+
+Actions matter more than CRUD in real ERP systems.
+
+### Permission
+
+Represents access control.
+
+```ts
+definePermission({
+  entity: "Invoice",
+  read: ["admin", "accountant"],
+  update: ["admin"],
+});
+```
+
+## Entity engine
+
+The entity engine is the ERP kernel. It owns:
+
+- Field definitions
+- Validation
+- Relationships
+- Permissions
+- UI metadata
+- Search metadata
+- Workflow attachment
+- Action attachment
+
+```ts
+defineEntity({
+  name: "Member",
+  fields: {
+    name: field({
+      label: "Member Name",
+      searchable: true,
+    }),
+  },
+});
+```
+
+## Generic API engine
+
+Do not hand-build routes per entity:
+
+```
+GET /customers
+GET /suppliers
+GET /members
+GET /invoices
+```
+
+Build one metadata-driven surface:
+
+```
+GET    /api/entity/:entity
+POST   /api/entity/:entity
+PUT    /api/entity/:entity/:id
+DELETE /api/entity/:entity/:id
+```
+
+The API layer should not know business entities—it only understands metadata:
+
+```ts
+const entity = registry.get("Member");
+```
+
+## Generic UI engine (planned)
+
+Not in this repo yet. The target frontend will be generated from the same entity metadata the API exposes (`GET /api/entity/:name/meta`):
+
+```tsx
+<EntityTable entity="Member" />
+<EntityForm entity="Member" />
+```
+
+Planned responsibilities: forms, tables, filters, search, detail views. See [Planning — frontend & UI](#planning--frontend--ui).
+
+## Reports are different
+
+Transactional domains (Members, Invoices, Payments, Collections) can use generic CRUD.
+
+Reports should use **dedicated SQL**, not the CRUD engine:
+
+```sql
+SELECT village, SUM(quantity)
+FROM milk_collection
+GROUP BY village;
+```
+
+```
+Entity  → CRUD
+Report  → SQL
+```
+
+Treat them as separate systems.
+
+## Workflows and actions over CRUD
+
+Simple apps are CRUD-heavy. ERP systems are **command-heavy**.
+
+Business users care about:
+
+```
+POST /invoice/123/approve
+POST /invoice/123/cancel
+POST /invoice/123/send
+```
+
+—not `PATCH /invoice/123`. Optimize for commands and workflows.
+
+## Audit trail
+
+Required from day one. Track:
+
+- Who changed
+- What changed
+- Old value / new value
+- Timestamp
+
+All mutations flow through a central service:
+
+```
+Entity Service
+      ↓
+    Audit
+      ↓
+  Workflow
+      ↓
+ Permission
+      ↓
+  Database
+```
+
+Never allow direct database mutations from modules.
+
+## Database strategy
+
+**Drizzle** is infrastructure: schema, migrations, query execution, SQL generation.
+
+Drizzle must not become the platform architecture.
+
+Avoid:
+
+```
+Business Logic → Drizzle
+```
+
+Prefer:
+
+```
+Business Logic → Entity Service → Drizzle
+```
+
+Drizzle stays replaceable.
+
+## Supabase perspective
+
+Supabase is useful for Postgres, Auth, Storage, and Realtime.
+
+Autogenerated Supabase CRUD APIs should **not** become the ERP architecture. As complexity grows:
+
+```
+CRUD        ↓
+Workflows   ↑
+Actions     ↑
+Reports     ↑
+```
+
+The platform owns entities, workflows, actions, and permissions regardless of database vendor.
+
+## Architecture
+
+**Full platform (target):**
+
+```
+UI                          ← planned (separate repo / app)
+ ↓
+Generic UI Engine           ← planned
+ ↓
+Generic API Engine          ← this repo (apps/server)
+ ↓
+Entity Service              ← this repo (packages/engine)
+ ├── Permission Engine      ← packages/permissions (partial)
+ ├── Workflow Engine        ← packages/workflows (partial)
+ ├── Audit Engine           ← packages/engine (implemented)
+ └── Action Engine          ← packages/engine (partial)
+ ↓
+Entity Registry             ← packages/entities
+ ↓
+Drizzle                     ← packages/db
+ ↓
+Postgres (or SQLite in dev)
+```
+
+## Key principle
+
+The most valuable asset is not forms, tables, APIs, or codegen templates.
+
+The most valuable asset is:
+
+```
+Entity Definitions
+Workflow Definitions
+Permission Definitions
+Action Definitions
+```
+
+These are the **operating system** of the ERP platform. Everything else is generated or derived from them.
+
+---
+
+## Implementation status
+
+Status key: **Implemented** — used in dev paths · **Partial** — wired but incomplete or unused · **Scaffold** — types/registry only · **Planned** — not started in this repo · **Infra** — tooling only
+
+| Package / app | Status | What exists today |
+| --- | --- | --- |
+| `apps/server` | **Implemented** | Generic entity routes, OpenAPI at `/docs`, health check, Better Auth proxy at `/api/auth/*` |
+| `packages/entities` | **Implemented** | `defineEntity`, `field()`, registry, `Member` sample entity bootstrapped |
+| `packages/engine` | **Implemented** | CRUD, list/search/filters/sort/pagination, audit, workflow validation on update; action route + registry exist but **no actions registered yet** |
+| `packages/db` | **Implemented** | Drizzle + SQLite; `member`, `audit_log`, Better Auth tables |
+| `packages/auth` | **Implemented** | Better Auth (email/password) with Drizzle adapter |
+| `packages/env` | **Implemented** | Zod-validated server environment |
+| `packages/workflows` | **Scaffold** | `defineWorkflow`, registry, transition validation; **no workflows registered** |
+| `packages/permissions` | **Scaffold** | `definePermission`, registry; **no rules registered**; default allow when no rules |
+| `packages/reports` | **Scaffold** | `defineReport` + registry only; **no report API or SQL runner** |
+| `apps/server` (auth context) | **Partial** | `createEngineContext` returns `user: undefined` — permissions not tied to session yet |
+| `packages/entities` (relations) | **Planned** | No relationship fields or joins in definitions |
+| `apps/web` (frontend) | **Planned** | No frontend app in this repo; UI lives in a separate project |
+| `packages/config` | **Infra** | Shared TypeScript config |
+
+### Generic API (implemented)
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/entity/:name/meta` | Entity metadata for clients / future UI |
+| `GET` | `/api/entity/:name` | List (search, filters, sort, pagination) |
+| `GET` | `/api/entity/:name/:id` | Get one record |
+| `POST` | `/api/entity/:name` | Create |
+| `PUT` | `/api/entity/:name/:id` | Update (runs workflow validation when configured) |
+| `DELETE` | `/api/entity/:name/:id` | Delete |
+| `POST` | `/api/entity/:name/:id/action/:action` | Run registered custom action |
+
+### Sample entity
+
+Only **Member** is registered (`memberCode`, `name`). Use it to exercise the generic API and OpenAPI docs.
+
+---
+
+## Tech stack (backend)
+
+Built with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack):
+
+- **TypeScript** — end-to-end types
+- **Bun** — runtime
+- **Fastify** — API server
+- **Drizzle** — schema and queries (infrastructure only)
+- **SQLite / Turso** — local and edge-friendly database
+- **Better Auth** — authentication
+- **Turborepo** — monorepo builds
+
+## Project structure
+
+```
+crud-engine/
+├── apps/
+│   └── server/           # Generic entity API (Fastify) — backend entrypoint
+├── packages/
+│   ├── entities/         # Entity definitions & registry
+│   ├── engine/           # Entity service, audit, query builder, actions
+│   ├── workflows/        # Workflow definitions & validation (scaffold)
+│   ├── permissions/      # Permission definitions (scaffold)
+│   ├── reports/          # Report definitions (scaffold; SQL later)
+│   ├── db/               # Drizzle schema & migrations
+│   ├── auth/             # Better Auth configuration
+│   ├── env/              # Environment validation
+│   └── config/           # Shared TS config
+```
+
+## Getting started
+
+Install dependencies:
+
+```bash
+bun install
+```
+
+### Database
+
+This project uses SQLite with Drizzle ORM.
+
+1. Optional: start local SQLite:
+
+```bash
+bun run db:local
+```
+
+2. Configure `apps/server/.env` if needed.
+
+3. Apply schema:
+
+```bash
+bun run db:push
+```
+
+### Development
+
+```bash
+bun run dev
+```
+
+- API: [http://localhost:3000](http://localhost:3000)
+- OpenAPI: [http://localhost:3000/docs](http://localhost:3000/docs)
+
+Set `CORS_ORIGIN` in `apps/server/.env` for any client that calls the API (required for Better Auth trusted origins).
+
+## Scripts
+
+| Command | Description |
+| --- | --- |
+| `bun run dev` | Start all apps in development |
+| `bun run build` | Build all packages and apps |
+| `bun run dev:server` | Start API only |
+| `bun run check-types` | Typecheck the monorepo |
+| `bun run db:push` | Push schema to the database |
+| `bun run db:generate` | Generate Drizzle client/types |
+| `bun run db:migrate` | Run migrations |
+| `bun run db:studio` | Open Drizzle Studio |
+| `bun run db:local` | Start local SQLite |
+
+## Planning — frontend & UI
+
+The backend is designed to feed a **generic UI engine** in a **separate frontend project** (not in this monorepo). Nothing in that layer ships here yet.
+
+### Planned frontend (separate repo or app)
+
+- Next.js (or similar) consuming `/api/entity/:name/meta` and generic CRUD routes
+- Metadata-driven `<EntityTable />`, `<EntityForm />`, filters, and detail views
+- Auth session wired into API calls; permission-aware UI
+- Own component library (e.g. shadcn) scoped to that app—no shared `packages/ui` in the backend repo
+
+### Planned report UI
+
+Report screens will call a **dedicated report API** (SQL-backed), not the entity CRUD engine—aligned with [Reports are different](#reports-are-different).
