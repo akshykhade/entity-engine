@@ -6,6 +6,7 @@ import {
   type PermissionContext,
   type PermissionMatrix,
 } from "@crud-engine/permissions";
+import { listRoles } from "@crud-engine/roles";
 
 import { actionRegistry } from "./define-action";
 
@@ -13,19 +14,27 @@ export function listActionsForEntity(entity: string): PermissionAction[] {
   return [...CRUD_ACTIONS, ...actionRegistry.listForEntity(entity)];
 }
 
-export function listPermissionMatrix(): PermissionMatrix {
+export async function listPermissionMatrix(): Promise<PermissionMatrix> {
   const entities = entityRegistry.list().map((entity) => ({
     name: entity.name,
     actions: listActionsForEntity(entity.name),
   }));
 
-  return permissionRegistry.listMatrix(entities);
+  const dbRoleNames = (await listRoles()).map((role) => role.name);
+  const grantRoleNames = permissionRegistry.listRoles();
+  const roles = [...new Set([...dbRoleNames, ...grantRoleNames])].sort();
+
+  return {
+    roles,
+    entities,
+    grants: permissionRegistry.listGrants(),
+  };
 }
 
 export async function listPermissionsForUser(
   ctx: PermissionContext,
 ): Promise<Record<string, Record<string, boolean>>> {
-  const matrix = listPermissionMatrix();
+  const matrix = await listPermissionMatrix();
   const permissions: Record<string, Record<string, boolean>> = {};
 
   for (const entity of matrix.entities) {

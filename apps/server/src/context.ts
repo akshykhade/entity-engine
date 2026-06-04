@@ -1,5 +1,6 @@
 import { auth } from "@crud-engine/auth";
 import type { EngineContext } from "@crud-engine/engine";
+import { anonymousRoleNames, getRoleNamesForUser } from "@crud-engine/roles";
 import type { FastifyRequest } from "fastify";
 
 function requestHeaders(request: FastifyRequest): Headers {
@@ -22,15 +23,19 @@ export async function createEngineContext(
   });
 
   if (!session?.user) {
-    return { user: undefined };
+    const roles = anonymousRoleNames();
+    return { user: undefined, roles };
   }
+
+  const roles = await getRoleNamesForUser(session.user.id);
 
   return {
     user: {
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
-      roles: [],
+      roles,
     },
+    roles,
   };
 }

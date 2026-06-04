@@ -12,7 +12,7 @@ export const entityNameParamsSchema = {
   properties: {
     name: {
       type: "string",
-      description: "Entity registry name (e.g. Member)",
+      description: "Entity name or slug (e.g. Member or member)",
     },
   },
   required: ["name"],
@@ -54,17 +54,34 @@ export const fieldMetaSchema = {
   required: ["label"],
 } as const;
 
+export const relationMetaSchema = {
+  type: "object",
+  properties: {
+    type: { type: "string", enum: ["link"] },
+    entity: { type: "string" },
+    label: { type: "string" },
+  },
+  required: ["type", "entity"],
+} as const;
+
 export const entityMetaSchema = {
   type: "object",
   properties: {
     name: { type: "string" },
+    slug: { type: "string" },
     primaryKey: { type: "string" },
+    audit: { type: "boolean" },
+    softDelete: { type: "boolean" },
     fields: {
       type: "object",
       additionalProperties: fieldMetaSchema,
     },
+    relations: {
+      type: "object",
+      additionalProperties: relationMetaSchema,
+    },
   },
-  required: ["name", "primaryKey", "fields"],
+  required: ["name", "slug", "primaryKey", "audit", "softDelete", "fields", "relations"],
 } as const;
 
 export const entityRecordSchema = {
@@ -198,6 +215,10 @@ export const permissionMatrixSchema = {
 export const permissionMeSchema = {
   type: "object",
   properties: {
+    roles: {
+      type: "array",
+      items: { type: "string" },
+    },
     permissions: {
       type: "object",
       additionalProperties: {
@@ -206,8 +227,42 @@ export const permissionMeSchema = {
       },
     },
   },
-  required: ["permissions"],
+  required: ["roles", "permissions"],
+} as const;
+
+export const roleRecordSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    label: { type: ["string", "null"] },
+  },
+  required: ["id", "name", "label"],
+} as const;
+
+export const roleListSchema = {
+  type: "object",
+  properties: {
+    roles: {
+      type: "array",
+      items: roleRecordSchema,
+    },
+  },
+  required: ["roles"],
+} as const;
+
+export const roleMeSchema = {
+  type: "object",
+  properties: {
+    roles: {
+      type: "array",
+      items: { type: "string" },
+    },
+    userId: { type: ["string", "null"] },
+  },
+  required: ["roles", "userId"],
 } as const;
 
 export const entityTags = ["Entity Engine"] as const;
 export const permissionTags = ["Permissions"] as const;
+export const roleTags = ["Roles"] as const;

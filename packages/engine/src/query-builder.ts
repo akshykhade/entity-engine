@@ -7,6 +7,7 @@ import {
   gt,
   gte,
   inArray,
+  isNull,
   like,
   lt,
   lte,
@@ -15,7 +16,7 @@ import {
   sql,
   type SQL,
 } from "drizzle-orm";
-import type { EntityDefinition } from "@crud-engine/entities";
+import { isSoftDeleteEnabled, type EntityDefinition } from "@crud-engine/entities";
 
 import { getTableColumn } from "./columns";
 import { badRequest } from "./errors";
@@ -77,11 +78,25 @@ function buildSort(entity: EntityDefinition, sort: Sort | undefined) {
   return sort.direction === "desc" ? desc(column) : asc(column);
 }
 
+export function buildSoftDeleteCondition(entity: EntityDefinition): SQL | undefined {
+  if (!isSoftDeleteEnabled(entity) || !entity.softDeleteField) {
+    return undefined;
+  }
+
+  const column = getTableColumn(entity, entity.softDeleteField);
+  return isNull(column);
+}
+
 export function buildWhereClause(
   entity: EntityDefinition,
   query: Pick<ListQuery, "filters" | "search">,
 ): SQL | undefined {
   const conditions: SQL[] = [];
+
+  const softDeleteCondition = buildSoftDeleteCondition(entity);
+  if (softDeleteCondition) {
+    conditions.push(softDeleteCondition);
+  }
 
   for (const filter of query.filters ?? []) {
     conditions.push(buildFilterCondition(entity, filter));
@@ -100,6 +115,18 @@ export function buildWhereClause(
   }
 
   return and(...conditions);
+}
+
+export function buildRecordWhereClause(entity: EntityDefinition, id: string): SQL {
+  const pkColumn = getTableColumn(entity, entity.primaryKey);
+  const conditions: SQL[] = [eq(pkColumn, id)];
+
+  const softDeleteCondition = buildSoftDeleteCondition(entity);
+  if (softDeleteCondition) {
+    conditions.push(softDeleteCondition);
+  }
+
+  return and(...conditions)!;
 }
 
 export function buildOrderBy(entity: EntityDefinition, sort: Sort | undefined) {

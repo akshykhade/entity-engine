@@ -1,6 +1,8 @@
 import { createDb } from "@crud-engine/db";
 import {
   entityRegistry,
+  isAuditEnabled,
+  isSoftDeleteEnabled,
   toEntityMeta,
   type EntityDefinition,
   type EntityMeta,
@@ -17,8 +19,10 @@ import {
 import { getPrimaryKeyColumn } from "./columns";
 import { actionRegistry } from "./define-action";
 import { badRequest, forbidden, notFound, type EngineContext } from "./errors";
+import { toHookContext } from "./hooks";
 import {
   buildOrderBy,
+  buildRecordWhereClause,
   buildWhereClause,
   count,
   getPagination,
@@ -77,17 +81,17 @@ function validateRequiredFields(
 export class EntityService {
   constructor(private readonly db: Db) {}
 
-  meta(entityName: string): EntityMeta {
-    const entity = entityRegistry.get(entityName);
+  meta(entityKey: string): EntityMeta {
+    const entity = entityRegistry.resolve(entityKey);
     return toEntityMeta(entity);
   }
 
   async list(
     ctx: EngineContext,
-    entityName: string,
+    entityKey: string,
     rawQuery: unknown,
   ): Promise<ListResult<RecordData>> {
-    const entity = entityRegistry.get(entityName);
+    const entity = entityRegistry.resolve(entityKey);
     await this.assertPermission(ctx, entity.name, "read");
 
     const query = listQuerySchema.parse(rawQuery ?? {});
@@ -122,53 +126,54 @@ export class EntityService {
 
   async get(
     ctx: EngineContext,
-    entityName: string,
+    entityKey: string,
     id: string,
   ): Promise<RecordData> {
-    const entity = entityRegistry.get(entityName);
+    const entity = entityRegistry.resolve(entityKey);
     await this.assertPermission(ctx, entity.name, "read");
-
-    const pkColumn = getPrimaryKeyColumn(entity);
-    const rows = await this.db
-      .select()
-      .from(entity.table)
-      .where(eq(pkColumn, id))
-      .limit(1);
-
-    const row = rows[0];
-    if (!row) {
-      throw notFound(`${entity.name} "${id}" not found`);
-    }
-
-    return serializeRecord(row as RecordData);
+    return this.fetchRecord(entity, id);
   }
 
   async listAuditLog(
     ctx: EngineContext,
-    entityName: string,
+    entityKey: string,
     id: string,
   ): Promise<AuditLogEntry[]> {
-    const entity = entityRegistry.get(entityName);
+    const entity = entityRegistry.resolve(entityKey);
     await this.assertPermission(ctx, entity.name, "read");
-    await this.get(ctx, entityName, id);
+    await this.fetchRecord(entity, id);
+
+    if (!isAuditEnabled(entity)) {
+      return [];
+    }
 
     return listAuditLogForRecord(this.db, entity.name, id);
   }
 
   async create(
     ctx: EngineContext,
-    entityName: string,
+    entityKey: string,
     rawData: unknown,
   ): Promise<RecordData> {
-    const entity = entityRegistry.get(entityName);
+    const entity = entityRegistry.resolve(entityKey);
     await this.assertPermission(ctx, entity.name, "create");
 
     if (!rawData || typeof rawData !== "object" || Array.isArray(rawData)) {
       throw badRequest("Request body must be an object");
     }
 
-    const data = pickWritableFields(entity, rawData as RecordData);
+    let data = pickWritableFields(entity, rawData as RecordData);
     validateRequiredFields(entity, data, false);
+
+    if (entity.hooks?.onBeforeCreate) {
+      const hookResult = await entity.hooks.onBeforeCreate(
+        toHookContext(ctx, entity),
+        data,
+      );
+      if (hookResult) {
+        data = hookResult;
+      }
+    }
 
     const now = new Date();
     const record = {
@@ -180,32 +185,52 @@ export class EntityService {
 
     await this.db.insert(entity.table).values(record);
 
-    await logMutation(this.db, ctx, {
-      entity: entity.name,
-      recordId: String(record.id),
-      action: "create",
-      after: serializeRecord(record as RecordData),
-    });
+    const serialized = serializeRecord(record as RecordData);
 
-    return serializeRecord(record as RecordData);
+    if (isAuditEnabled(entity)) {
+      await logMutation(this.db, ctx, {
+        entity: entity.name,
+        recordId: String(record.id),
+        action: "create",
+        after: serialized,
+      });
+    }
+
+    if (entity.hooks?.onAfterCreate) {
+      await entity.hooks.onAfterCreate(toHookContext(ctx, entity), serialized);
+    }
+
+    return serialized;
   }
 
   async update(
     ctx: EngineContext,
-    entityName: string,
+    entityKey: string,
     id: string,
     rawData: unknown,
   ): Promise<RecordData> {
-    const entity = entityRegistry.get(entityName);
+    const entity = entityRegistry.resolve(entityKey);
     await this.assertPermission(ctx, entity.name, "update");
 
     if (!rawData || typeof rawData !== "object" || Array.isArray(rawData)) {
       throw badRequest("Request body must be an object");
     }
 
-    const before = await this.get(ctx, entityName, id);
-    const data = pickWritableFields(entity, rawData as RecordData);
+    const before = await this.fetchRecord(entity, id);
+    let data = pickWritableFields(entity, rawData as RecordData);
     validateRequiredFields(entity, { ...before, ...data }, true);
+
+    if (entity.hooks?.onBeforeUpdate) {
+      const hookResult = await entity.hooks.onBeforeUpdate(
+        toHookContext(ctx, entity),
+        id,
+        data,
+        before,
+      );
+      if (hookResult) {
+        data = hookResult;
+      }
+    }
 
     const workflow = workflowRegistry.get(entity.name);
     if (workflow && workflow.field in data) {
@@ -231,52 +256,76 @@ export class EntityService {
       .set(updateData)
       .where(eq(pkColumn, id));
 
-    const after = await this.get(ctx, entityName, id);
+    const after = await this.fetchRecord(entity, id);
 
-    await logMutation(this.db, ctx, {
-      entity: entity.name,
-      recordId: id,
-      action: "update",
-      before,
-      after,
-    });
+    if (isAuditEnabled(entity)) {
+      await logMutation(this.db, ctx, {
+        entity: entity.name,
+        recordId: id,
+        action: "update",
+        before,
+        after,
+      });
+    }
+
+    if (entity.hooks?.onAfterUpdate) {
+      await entity.hooks.onAfterUpdate(
+        toHookContext(ctx, entity),
+        id,
+        before,
+        after,
+      );
+    }
 
     return after;
   }
 
   async delete(
     ctx: EngineContext,
-    entityName: string,
+    entityKey: string,
     id: string,
   ): Promise<{ success: true }> {
-    const entity = entityRegistry.get(entityName);
+    const entity = entityRegistry.resolve(entityKey);
     await this.assertPermission(ctx, entity.name, "delete");
 
-    const before = await this.get(ctx, entityName, id);
+    const before = await this.fetchRecord(entity, id);
     const pkColumn = getPrimaryKeyColumn(entity);
 
-    await this.db.delete(entity.table).where(eq(pkColumn, id));
+    if (isSoftDeleteEnabled(entity) && entity.softDeleteField) {
+      const softDeletePayload: Record<string, unknown> = {
+        updatedAt: new Date(),
+      };
+      softDeletePayload[entity.softDeleteField] = new Date();
+      await this.db
+        .update(entity.table)
+        .set(softDeletePayload as Record<string, never>)
+        .where(eq(pkColumn, id));
+    } else {
+      await this.db.delete(entity.table).where(eq(pkColumn, id));
+    }
 
-    await logMutation(this.db, ctx, {
-      entity: entity.name,
-      recordId: id,
-      action: "delete",
-      before,
-      after: null,
-    });
+    if (isAuditEnabled(entity)) {
+      await logMutation(this.db, ctx, {
+        entity: entity.name,
+        recordId: id,
+        action: "delete",
+        before,
+        after: null,
+      });
+    }
 
     return { success: true };
   }
 
   async runAction(
     ctx: EngineContext,
-    entityName: string,
+    entityKey: string,
     id: string,
     actionName: string,
     rawBody: unknown,
   ): Promise<unknown> {
-    entityRegistry.get(entityName);
-    await this.assertPermission(ctx, entityName, actionName);
+    const entity = entityRegistry.resolve(entityKey);
+    await this.assertPermission(ctx, entity.name, actionName);
 
     if (rawBody !== undefined && rawBody !== null) {
       if (typeof rawBody !== "object" || Array.isArray(rawBody)) {
@@ -284,9 +333,27 @@ export class EntityService {
       }
     }
 
-    const action = actionRegistry.get(entityName, actionName);
+    const action = actionRegistry.get(entity.name, actionName);
     const body = rawBody ?? {};
     return action.handler(ctx, id, body);
+  }
+
+  private async fetchRecord(
+    entity: EntityDefinition,
+    id: string,
+  ): Promise<RecordData> {
+    const rows = await this.db
+      .select()
+      .from(entity.table)
+      .where(buildRecordWhereClause(entity, id))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row) {
+      throw notFound(`${entity.name} "${id}" not found`);
+    }
+
+    return serializeRecord(row as RecordData);
   }
 
   private async assertPermission(
