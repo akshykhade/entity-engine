@@ -62,7 +62,6 @@
       "name": "@crud-engine/db",
       "dependencies": {
         "@crud-engine/env": "workspace:*",
-        "@crud-engine/schemas": "workspace:*",
         "@libsql/client": "0.15.15",
         "dotenv": "catalog:",
         "drizzle-orm": "^0.45.1",
@@ -82,7 +81,6 @@
         "@crud-engine/entities": "workspace:*",
         "@crud-engine/permissions": "workspace:*",
         "@crud-engine/reports": "workspace:*",
-        "@crud-engine/schemas": "workspace:*",
         "@crud-engine/workflows": "workspace:*",
         "drizzle-orm": "^0.45.1",
       },
@@ -155,16 +153,6 @@
       "name": "@crud-engine/roles",
       "dependencies": {
         "@crud-engine/db": "workspace:*",
-        "drizzle-orm": "^0.45.1",
-      },
-      "devDependencies": {
-        "@crud-engine/config": "workspace:*",
-        "typescript": "catalog:",
-      },
-    },
-    "packages/schemas": {
-      "name": "@crud-engine/schemas",
-      "dependencies": {
         "drizzle-orm": "^0.45.1",
       },
       "devDependencies": {
@@ -246,8 +234,6 @@
     "@crud-engine/reports": ["@crud-engine/reports@workspace:packages/reports"],
 
     "@crud-engine/roles": ["@crud-engine/roles@workspace:packages/roles"],
-
-    "@crud-engine/schemas": ["@crud-engine/schemas@workspace:packages/schemas"],
 
     "@crud-engine/workflows": ["@crud-engine/workflows@workspace:packages/workflows"],
 
