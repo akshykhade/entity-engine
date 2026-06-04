@@ -81,9 +81,12 @@ async function start() {
     },
   );
 
-  await fastify.listen({ port: 3000 });
-  console.log("Server running on port 3000");
-  console.log("API reference available at http://localhost:3000/docs");
+  const port = Number(process.env.PORT ?? 3000);
+  const host = process.env.HOST ?? "0.0.0.0";
+
+  await fastify.listen({ port, host });
+  console.log(`Server running on http://${host}:${port}`);
+  console.log(`API reference available at http://127.0.0.1:${port}/docs`);
 }
 
 start().catch((err) => {

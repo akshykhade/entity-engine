@@ -1,0 +1,16 @@
+{
+  "name": "@crud-engine/tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test --preload ./setup.ts"
+  },
+  "dependencies": {
+    "dotenv": "catalog:"
+  },
+  "devDependencies": {
+    "@crud-engine/config": "workspace:*",
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}
