@@ -17,6 +17,7 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@crud-engine/schemas": "workspace:*",
     "@crud-engine/env": "workspace:*",
     "@libsql/client": "0.15.15",
     "dotenv": "catalog:",

@@ -1,5 +1,5 @@
 {
-  "name": "@crud-engine/entities",
+  "name": "@crud-engine/schemas",
   "type": "module",
   "exports": {
     ".": {

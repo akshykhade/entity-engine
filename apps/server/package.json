@@ -13,7 +13,7 @@
     "@crud-engine/auth": "workspace:*",
     "@crud-engine/db": "workspace:*",
     "@crud-engine/engine": "workspace:*",
-    "@crud-engine/entities": "workspace:*",
+    "@crud-engine/domains": "workspace:*",
     "@crud-engine/env": "workspace:*",
     "@fastify/cors": "^11.0.1",
     "@fastify/swagger": "^9.7.0",

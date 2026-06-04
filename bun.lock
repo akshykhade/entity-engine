@@ -21,8 +21,8 @@
       "dependencies": {
         "@crud-engine/auth": "workspace:*",
         "@crud-engine/db": "workspace:*",
+        "@crud-engine/domains": "workspace:*",
         "@crud-engine/engine": "workspace:*",
-        "@crud-engine/entities": "workspace:*",
         "@crud-engine/env": "workspace:*",
         "@fastify/cors": "^11.0.1",
         "@fastify/swagger": "^9.7.0",
@@ -61,6 +61,7 @@
       "name": "@crud-engine/db",
       "dependencies": {
         "@crud-engine/env": "workspace:*",
+        "@crud-engine/schemas": "workspace:*",
         "@libsql/client": "0.15.15",
         "dotenv": "catalog:",
         "drizzle-orm": "^0.45.1",
@@ -70,6 +71,22 @@
       "devDependencies": {
         "@crud-engine/config": "workspace:*",
         "drizzle-kit": "^0.31.8",
+        "typescript": "catalog:",
+      },
+    },
+    "packages/domains": {
+      "name": "@crud-engine/domains",
+      "dependencies": {
+        "@crud-engine/engine": "workspace:*",
+        "@crud-engine/entities": "workspace:*",
+        "@crud-engine/permissions": "workspace:*",
+        "@crud-engine/reports": "workspace:*",
+        "@crud-engine/schemas": "workspace:*",
+        "@crud-engine/workflows": "workspace:*",
+        "drizzle-orm": "^0.45.1",
+      },
+      "devDependencies": {
+        "@crud-engine/config": "workspace:*",
         "typescript": "catalog:",
       },
     },
@@ -91,7 +108,6 @@
     "packages/entities": {
       "name": "@crud-engine/entities",
       "dependencies": {
-        "@crud-engine/db": "workspace:*",
         "drizzle-orm": "^0.45.1",
       },
       "devDependencies": {
@@ -127,6 +143,16 @@
       "name": "@crud-engine/reports",
       "dependencies": {
         "@crud-engine/db": "workspace:*",
+      },
+      "devDependencies": {
+        "@crud-engine/config": "workspace:*",
+        "typescript": "catalog:",
+      },
+    },
+    "packages/schemas": {
+      "name": "@crud-engine/schemas",
+      "dependencies": {
+        "drizzle-orm": "^0.45.1",
       },
       "devDependencies": {
         "@crud-engine/config": "workspace:*",
@@ -194,6 +220,8 @@
 
     "@crud-engine/db": ["@crud-engine/db@workspace:packages/db"],
 
+    "@crud-engine/domains": ["@crud-engine/domains@workspace:packages/domains"],
+
     "@crud-engine/engine": ["@crud-engine/engine@workspace:packages/engine"],
 
     "@crud-engine/entities": ["@crud-engine/entities@workspace:packages/entities"],
@@ -203,6 +231,8 @@
     "@crud-engine/permissions": ["@crud-engine/permissions@workspace:packages/permissions"],
 
     "@crud-engine/reports": ["@crud-engine/reports@workspace:packages/reports"],
+
+    "@crud-engine/schemas": ["@crud-engine/schemas@workspace:packages/schemas"],
 
     "@crud-engine/workflows": ["@crud-engine/workflows@workspace:packages/workflows"],
 

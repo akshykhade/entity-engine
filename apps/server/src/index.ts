@@ -1,5 +1,5 @@
 import { auth } from "@crud-engine/auth";
-import "@crud-engine/entities";
+import "@crud-engine/domains";
 import { env } from "@crud-engine/env/server";
 import fastifyCors from "@fastify/cors";
 import Fastify from "fastify";
