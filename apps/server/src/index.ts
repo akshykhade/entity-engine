@@ -9,6 +9,7 @@ import Fastify from "fastify";
 import { registerErrorHandler } from "./error-handler";
 import { registerOpenApi } from "./openapi";
 import { registerEntityRoutes } from "./routes/entity";
+import { registerGrantRoutes } from "./routes/grants";
 import { registerPermissionRoutes } from "./routes/permissions";
 import { registerRoleRoutes } from "./routes/roles";
 
@@ -36,6 +37,7 @@ async function start() {
   await registerEntityRoutes(fastify);
   await registerRoleRoutes(fastify);
   await registerPermissionRoutes(fastify);
+  await registerGrantRoutes(fastify);
 
   fastify.route({
     method: ["GET", "POST"],
