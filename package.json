@@ -35,6 +35,7 @@
     "db:generate": "turbo -F @crud-engine/db db:generate",
     "db:migrate": "turbo -F @crud-engine/db db:migrate",
     "db:local": "turbo -F @crud-engine/db db:local",
+    "db:seed": "turbo -F @crud-engine/db db:seed",
     "test": "turbo -F @crud-engine/tests test"
   },
   "dependencies": {
