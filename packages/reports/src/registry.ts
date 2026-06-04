@@ -1,6 +1,6 @@
 import type { ReportDefinition } from "./types";
 
-class ReportRegistry {
+export class ReportRegistry {
   private reports = new Map<string, ReportDefinition>();
 
   register<T>(report: ReportDefinition<T>): ReportDefinition<T> {

@@ -9,6 +9,7 @@ import {
   type EntityMeta,
 } from "@crud-engine/entities";
 import { type PermissionRegistry, permissionRegistry } from "@crud-engine/permissions";
+import { type ReportRegistry, reportRegistry } from "@crud-engine/reports";
 import { type WorkflowRegistry, workflowRegistry } from "@crud-engine/workflows";
 import { eq } from "drizzle-orm";
 
@@ -26,6 +27,7 @@ export type EngineRegistries = {
   permissionRegistry: PermissionRegistry;
   workflowRegistry: WorkflowRegistry;
   actionRegistry: ActionRegistry;
+  reportRegistry: ReportRegistry;
 };
 import { toHookContext } from "./hooks";
 import {
@@ -398,6 +400,7 @@ export const defaultRegistries: EngineRegistries = {
   permissionRegistry,
   workflowRegistry,
   actionRegistry,
+  reportRegistry,
 };
 
 export function createEntityService(
