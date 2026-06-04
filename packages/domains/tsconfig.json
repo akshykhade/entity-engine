@@ -8,7 +8,6 @@
     "composite": true
   },
   "references": [
-    { "path": "../schemas" },
     { "path": "../entities" },
     { "path": "../engine" },
     { "path": "../permissions" },
