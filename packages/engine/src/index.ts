@@ -1,4 +1,5 @@
-export { logMutation } from "./audit";
+export { listAuditLogForRecord, logMutation } from "./audit";
+export type { AuditLogEntry } from "./audit";
 export { defineAction, actionRegistry } from "./define-action";
 export type { ActionDefinition } from "./define-action";
 export {

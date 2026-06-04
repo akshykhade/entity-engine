@@ -9,7 +9,11 @@ import { permissionRegistry } from "@crud-engine/permissions";
 import { workflowRegistry } from "@crud-engine/workflows";
 import { eq } from "drizzle-orm";
 
-import { logMutation } from "./audit";
+import {
+  listAuditLogForRecord,
+  logMutation,
+  type AuditLogEntry,
+} from "./audit";
 import { getPrimaryKeyColumn } from "./columns";
 import { actionRegistry } from "./define-action";
 import { badRequest, forbidden, notFound, type EngineContext } from "./errors";
@@ -137,6 +141,18 @@ export class EntityService {
     }
 
     return serializeRecord(row as RecordData);
+  }
+
+  async listAuditLog(
+    ctx: EngineContext,
+    entityName: string,
+    id: string,
+  ): Promise<AuditLogEntry[]> {
+    const entity = entityRegistry.get(entityName);
+    await this.assertPermission(ctx, entity.name, "read");
+    await this.get(ctx, entityName, id);
+
+    return listAuditLogForRecord(this.db, entity.name, id);
   }
 
   async create(

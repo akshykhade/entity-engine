@@ -110,6 +110,41 @@ export const entityWriteBodySchema = {
   description: "Writable entity fields",
 } as const;
 
+export const auditLogEntrySchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    entity: { type: "string" },
+    recordId: { type: "string" },
+    action: { type: "string" },
+    before: {
+      type: ["object", "null"],
+      additionalProperties: true,
+    },
+    after: {
+      type: ["object", "null"],
+      additionalProperties: true,
+    },
+    actorId: { type: "string" },
+    createdAt: { type: "string", format: "date-time" },
+  },
+  required: [
+    "id",
+    "entity",
+    "recordId",
+    "action",
+    "before",
+    "after",
+    "actorId",
+    "createdAt",
+  ],
+} as const;
+
+export const auditLogListSchema = {
+  type: "array",
+  items: auditLogEntrySchema,
+} as const;
+
 export const deleteResultSchema = {
   type: "object",
   properties: {

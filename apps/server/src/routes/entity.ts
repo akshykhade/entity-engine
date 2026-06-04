@@ -6,6 +6,7 @@ import type { FastifyInstance, FastifyReply } from "fastify";
 
 import { createEngineContext } from "../context";
 import {
+  auditLogListSchema,
   deleteResultSchema,
   entityActionParamsSchema,
   entityMetaSchema,
@@ -110,6 +111,35 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
         const ctx = createEngineContext(request);
         const result = await entityService.list(ctx, name, request.query);
         return reply.send(result);
+      } catch (error) {
+        const handled = handleEngineError(error);
+        return sendEngineError(reply, handled);
+      }
+    },
+  );
+
+  fastify.get(
+    "/api/entity/:name/:id/audit_log",
+    {
+      schema: {
+        tags: entityTags,
+        summary: "List audit log for entity record",
+        description:
+          "Returns audit trail entries for a record, newest first. Read-only.",
+        params: entityRecordParamsSchema,
+        response: {
+          200: auditLogListSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { name, id } = request.params as { name: string; id: string };
+        const ctx = createEngineContext(request);
+        const entries = await entityService.listAuditLog(ctx, name, id);
+        return reply.send(entries);
       } catch (error) {
         const handled = handleEngineError(error);
         return sendEngineError(reply, handled);
