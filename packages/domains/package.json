@@ -5,8 +5,8 @@
     ".": {
       "default": "./src/index.ts"
     },
-    "./member/schema": {
-      "default": "./src/member/schema.ts"
+    "./member/model": {
+      "default": "./src/member/model.ts"
     },
     "./*": {
       "default": "./src/*.ts"

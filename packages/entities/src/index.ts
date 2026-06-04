@@ -11,8 +11,16 @@ export type {
   EntityMeta,
   SoftDeleteConfig,
 } from "./define-entity";
-export { field } from "./field";
-export type { FieldDefinition, FieldMeta } from "./field";
+export { field, resolveFieldMeta, isFieldBinding } from "./field";
+export type {
+  FieldBinding,
+  FieldMeta,
+  FieldMetaInput,
+  StorageType,
+  UiType,
+} from "./field";
+export { inferStorageType, defaultUiType } from "./infer-field-type";
+export { assertEntityConsistency } from "./assert-entity";
 export type { EntityHookContext, EntityHooks, EntityHookUser } from "./hooks";
 export { link } from "./relations";
 export type { LinkRelation, RelationDefinition } from "./relations";
