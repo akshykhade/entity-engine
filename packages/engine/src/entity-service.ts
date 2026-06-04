@@ -86,6 +86,12 @@ export class EntityService {
     return toEntityMeta(entity);
   }
 
+  listMeta(): EntityMeta[] {
+    return entityRegistry
+      .listMeta()
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   async list(
     ctx: EngineContext,
     entityKey: string,

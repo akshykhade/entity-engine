@@ -9,6 +9,7 @@ import {
   auditLogListSchema,
   deleteResultSchema,
   entityActionParamsSchema,
+  entityCatalogSchema,
   entityMetaSchema,
   entityNameParamsSchema,
   entityRecordParamsSchema,
@@ -61,6 +62,24 @@ function sendEngineError(
 }
 
 export async function registerEntityRoutes(fastify: FastifyInstance): Promise<void> {
+  fastify.get(
+    "/api/entities",
+    {
+      schema: {
+        tags: entityTags,
+        summary: "List registered entities",
+        description:
+          "Returns metadata for every entity in the registry, sorted by name. Use for navigation, module pickers, and generic UI bootstrapping.",
+        response: {
+          200: entityCatalogSchema,
+        },
+      },
+    },
+    async (_request, reply) => {
+      return reply.send({ entities: entityService.listMeta() });
+    },
+  );
+
   fastify.get(
     "/api/entity/:name/meta",
     {

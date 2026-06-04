@@ -84,6 +84,18 @@ export const entityMetaSchema = {
   required: ["name", "slug", "primaryKey", "audit", "softDelete", "fields", "relations"],
 } as const;
 
+export const entityCatalogSchema = {
+  type: "object",
+  properties: {
+    entities: {
+      type: "array",
+      items: entityMetaSchema,
+      description: "All registered entities with metadata for navigation and generic UI",
+    },
+  },
+  required: ["entities"],
+} as const;
+
 export const entityRecordSchema = {
   type: "object",
   additionalProperties: true,

@@ -341,6 +341,7 @@ Status key: **Implemented** — used in dev paths · **Partial** — wired but i
 
 | Method | Path | Purpose |
 | --- | --- | --- |
+| `GET` | `/api/entities` | Catalog of all registered entities (metadata for navigation / generic UI) |
 | `GET` | `/api/entity/:name/meta` | Entity metadata for clients / future UI |
 | `GET` | `/api/entity/:name` | List (search, filters, sort, pagination) |
 | `GET` | `/api/entity/:name/:id` | Get one record |
