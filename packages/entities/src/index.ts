@@ -24,4 +24,4 @@ export { assertEntityConsistency } from "./assert-entity";
 export type { EntityHookContext, EntityHooks, EntityHookUser } from "./hooks";
 export { link } from "./relations";
 export type { LinkRelation, RelationDefinition } from "./relations";
-export { entityRegistry } from "./registry";
+export { EntityRegistry, entityRegistry } from "./registry";

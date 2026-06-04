@@ -1,5 +1,6 @@
 import { auth, ensurePublicRole } from "@crud-engine/auth";
-import "@crud-engine/domains";
+import { bootstrapDomains } from "@crud-engine/domains";
+import { defaultRegistries } from "@crud-engine/engine";
 import { env } from "@crud-engine/env/server";
 import fastifyCors from "@fastify/cors";
 import Fastify from "fastify";
@@ -22,6 +23,7 @@ const fastify = Fastify({
 });
 
 async function start() {
+  bootstrapDomains(defaultRegistries);
   await ensurePublicRole();
   await fastify.register(fastifyCors, baseCorsConfig);
   await registerOpenApi(fastify);

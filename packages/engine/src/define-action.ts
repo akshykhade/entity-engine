@@ -6,7 +6,7 @@ export type ActionDefinition<T = unknown> = {
   handler: (ctx: EngineContext, id: string, body: unknown) => Promise<T>;
 };
 
-class ActionRegistry {
+export class ActionRegistry {
   private actions = new Map<string, ActionDefinition>();
 
   private key(entity: string, name: string): string {

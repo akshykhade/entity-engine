@@ -1,5 +1,6 @@
 import { createDb } from "@crud-engine/db";
 import {
+  type EntityRegistry,
   entityRegistry,
   isAuditEnabled,
   isSoftDeleteEnabled,
@@ -7,8 +8,8 @@ import {
   type EntityDefinition,
   type EntityMeta,
 } from "@crud-engine/entities";
-import { permissionRegistry } from "@crud-engine/permissions";
-import { workflowRegistry } from "@crud-engine/workflows";
+import { type PermissionRegistry, permissionRegistry } from "@crud-engine/permissions";
+import { type WorkflowRegistry, workflowRegistry } from "@crud-engine/workflows";
 import { eq } from "drizzle-orm";
 
 import {
@@ -17,8 +18,15 @@ import {
   type AuditLogEntry,
 } from "./audit";
 import { getPrimaryKeyColumn } from "./columns";
-import { actionRegistry } from "./define-action";
+import { type ActionRegistry, actionRegistry } from "./define-action";
 import { badRequest, forbidden, notFound, type EngineContext } from "./errors";
+
+export type EngineRegistries = {
+  entityRegistry: EntityRegistry;
+  permissionRegistry: PermissionRegistry;
+  workflowRegistry: WorkflowRegistry;
+  actionRegistry: ActionRegistry;
+};
 import { toHookContext } from "./hooks";
 import {
   buildOrderBy,
@@ -78,25 +86,28 @@ function validateRequiredFields(
   }
 }
 
-function enrichEntityMeta(entity: EntityDefinition): EntityMeta {
-  return {
-    ...toEntityMeta(entity),
-    actions: actionRegistry.listForEntity(entity.name),
-  };
-}
-
 export class EntityService {
-  constructor(private readonly db: Db) {}
+  constructor(
+    private readonly db: Db,
+    private readonly registries: EngineRegistries,
+  ) {}
+
+  private enrichEntityMeta(entity: EntityDefinition): EntityMeta {
+    return {
+      ...toEntityMeta(entity),
+      actions: this.registries.actionRegistry.listForEntity(entity.name),
+    };
+  }
 
   meta(entityKey: string): EntityMeta {
-    const entity = entityRegistry.resolve(entityKey);
-    return enrichEntityMeta(entity);
+    const entity = this.registries.entityRegistry.resolve(entityKey);
+    return this.enrichEntityMeta(entity);
   }
 
   listMeta(): EntityMeta[] {
-    return entityRegistry
+    return this.registries.entityRegistry
       .list()
-      .map((entity) => enrichEntityMeta(entity))
+      .map((entity) => this.enrichEntityMeta(entity))
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
@@ -105,7 +116,7 @@ export class EntityService {
     entityKey: string,
     rawQuery: unknown,
   ): Promise<ListResult<RecordData>> {
-    const entity = entityRegistry.resolve(entityKey);
+    const entity = this.registries.entityRegistry.resolve(entityKey);
     await this.assertPermission(ctx, entity.name, "read");
 
     const query = listQuerySchema.parse(rawQuery ?? {});
@@ -143,7 +154,7 @@ export class EntityService {
     entityKey: string,
     id: string,
   ): Promise<RecordData> {
-    const entity = entityRegistry.resolve(entityKey);
+    const entity = this.registries.entityRegistry.resolve(entityKey);
     await this.assertPermission(ctx, entity.name, "read");
     return this.fetchRecord(entity, id);
   }
@@ -153,7 +164,7 @@ export class EntityService {
     entityKey: string,
     id: string,
   ): Promise<AuditLogEntry[]> {
-    const entity = entityRegistry.resolve(entityKey);
+    const entity = this.registries.entityRegistry.resolve(entityKey);
     await this.assertPermission(ctx, entity.name, "read");
     await this.fetchRecord(entity, id);
 
@@ -169,7 +180,7 @@ export class EntityService {
     entityKey: string,
     rawData: unknown,
   ): Promise<RecordData> {
-    const entity = entityRegistry.resolve(entityKey);
+    const entity = this.registries.entityRegistry.resolve(entityKey);
     await this.assertPermission(ctx, entity.name, "create");
 
     if (!rawData || typeof rawData !== "object" || Array.isArray(rawData)) {
@@ -223,7 +234,7 @@ export class EntityService {
     id: string,
     rawData: unknown,
   ): Promise<RecordData> {
-    const entity = entityRegistry.resolve(entityKey);
+    const entity = this.registries.entityRegistry.resolve(entityKey);
     await this.assertPermission(ctx, entity.name, "update");
 
     if (!rawData || typeof rawData !== "object" || Array.isArray(rawData)) {
@@ -246,9 +257,9 @@ export class EntityService {
       }
     }
 
-    const workflow = workflowRegistry.get(entity.name);
+    const workflow = this.registries.workflowRegistry.get(entity.name);
     if (workflow && workflow.field in data) {
-      const validation = workflowRegistry.validateTransition(
+      const validation = this.registries.workflowRegistry.validateTransition(
         entity.name,
         String(before[workflow.field]),
         String(data[workflow.field]),
@@ -299,7 +310,7 @@ export class EntityService {
     entityKey: string,
     id: string,
   ): Promise<{ success: true }> {
-    const entity = entityRegistry.resolve(entityKey);
+    const entity = this.registries.entityRegistry.resolve(entityKey);
     await this.assertPermission(ctx, entity.name, "delete");
 
     const before = await this.fetchRecord(entity, id);
@@ -338,7 +349,7 @@ export class EntityService {
     actionName: string,
     rawBody: unknown,
   ): Promise<unknown> {
-    const entity = entityRegistry.resolve(entityKey);
+    const entity = this.registries.entityRegistry.resolve(entityKey);
     await this.assertPermission(ctx, entity.name, actionName);
 
     if (rawBody !== undefined && rawBody !== null) {
@@ -347,7 +358,7 @@ export class EntityService {
       }
     }
 
-    const action = actionRegistry.get(entity.name, actionName);
+    const action = this.registries.actionRegistry.get(entity.name, actionName);
     const body = rawBody ?? {};
     return action.handler(ctx, id, body);
   }
@@ -375,15 +386,25 @@ export class EntityService {
     entity: string,
     action: string,
   ): Promise<void> {
-    const allowed = await permissionRegistry.checkPermission(ctx, entity, action);
+    const allowed = await this.registries.permissionRegistry.checkPermission(ctx, entity, action);
     if (!allowed) {
       throw forbidden();
     }
   }
 }
 
-export function createEntityService(db: Db = createDb()): EntityService {
-  return new EntityService(db);
+export const defaultRegistries: EngineRegistries = {
+  entityRegistry,
+  permissionRegistry,
+  workflowRegistry,
+  actionRegistry,
+};
+
+export function createEntityService(
+  db: Db = createDb(),
+  registries: EngineRegistries = defaultRegistries,
+): EntityService {
+  return new EntityService(db, registries);
 }
 
 export const entityService = createEntityService();

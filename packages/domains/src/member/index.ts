@@ -1,8 +1,5 @@
-import { entityRegistry } from "@crud-engine/entities";
-import { defineAction } from "@crud-engine/engine";
-import { definePermission } from "@crud-engine/permissions";
-import { defineReport } from "@crud-engine/reports";
-import { defineWorkflow } from "@crud-engine/workflows";
+import { reportRegistry } from "@crud-engine/reports";
+import type { EngineRegistries } from "@crud-engine/engine";
 
 import { memberActions } from "./actions";
 import { member } from "./model";
@@ -12,22 +9,22 @@ import { memberWorkflow } from "./workflow";
 
 export { member, members } from "./model";
 
-export function registerMember(): void {
-  entityRegistry.register(member);
+export function registerMember(registries: EngineRegistries): void {
+  registries.entityRegistry.register(member);
 
   if (memberWorkflow) {
-    defineWorkflow(memberWorkflow);
+    registries.workflowRegistry.register(memberWorkflow);
   }
 
   for (const action of memberActions) {
-    defineAction(action);
+    registries.actionRegistry.register(action);
   }
 
   for (const report of memberReports) {
-    defineReport(report);
+    reportRegistry.register(report);
   }
 
   for (const permission of memberPermissions) {
-    definePermission(permission);
+    registries.permissionRegistry.register(permission);
   }
 }

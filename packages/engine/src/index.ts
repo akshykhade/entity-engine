@@ -9,9 +9,11 @@ export {
 } from "./permission-matrix";
 export {
   createEntityService,
+  defaultRegistries,
   EntityService,
   entityService,
 } from "./entity-service";
+export type { EngineRegistries } from "./entity-service";
 export { EngineError, badRequest, forbidden, notFound } from "./errors";
 export type { EngineContext } from "./errors";
 export {

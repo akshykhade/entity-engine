@@ -1,6 +1,6 @@
 import { toEntityMeta, type EntityDefinition, type EntityMeta } from "./define-entity";
 
-class EntityRegistry {
+export class EntityRegistry {
   private entities = new Map<string, EntityDefinition>();
   private bySlug = new Map<string, EntityDefinition>();
 
