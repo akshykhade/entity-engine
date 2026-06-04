@@ -1,5 +1,3 @@
-export { definePermissionGrant } from "./define-permission-grant";
-export { definePermission } from "./define-permission";
 export { PermissionRegistry, permissionRegistry } from "./registry";
 export { CRUD_ACTIONS } from "./types";
 export type {

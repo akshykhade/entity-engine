@@ -44,9 +44,3 @@ export class ActionRegistry {
 }
 
 export const actionRegistry = new ActionRegistry();
-
-export function defineAction<T>(
-  action: ActionDefinition<T>,
-): ActionDefinition<T> {
-  return actionRegistry.register(action);
-}
