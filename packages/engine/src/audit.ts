@@ -1,6 +1,6 @@
 import { createDb } from "@crud-engine/db";
 import { auditLog } from "@crud-engine/db/schema/audit";
-import type { EntityAction } from "@crud-engine/permissions";
+import type { CrudAction } from "@crud-engine/permissions";
 import { and, desc, eq } from "drizzle-orm";
 
 import type { EngineContext } from "./errors";
@@ -52,7 +52,7 @@ export async function logMutation(
   input: {
     entity: string;
     recordId: string;
-    action: EntityAction;
+    action: CrudAction;
     before?: Record<string, unknown> | null;
     after?: Record<string, unknown> | null;
   },

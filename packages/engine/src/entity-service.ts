@@ -273,16 +273,26 @@ export class EntityService {
     entityName: string,
     id: string,
     actionName: string,
+    rawBody: unknown,
   ): Promise<unknown> {
     entityRegistry.get(entityName);
+    await this.assertPermission(ctx, entityName, actionName);
+
+    if (rawBody !== undefined && rawBody !== null) {
+      if (typeof rawBody !== "object" || Array.isArray(rawBody)) {
+        throw badRequest("Request body must be an object");
+      }
+    }
+
     const action = actionRegistry.get(entityName, actionName);
-    return action.handler(ctx, id);
+    const body = rawBody ?? {};
+    return action.handler(ctx, id, body);
   }
 
   private async assertPermission(
     ctx: EngineContext,
     entity: string,
-    action: "read" | "create" | "update" | "delete",
+    action: string,
   ): Promise<void> {
     const allowed = await permissionRegistry.checkPermission(ctx, entity, action);
     if (!allowed) {

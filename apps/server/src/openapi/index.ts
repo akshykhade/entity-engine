@@ -24,6 +24,10 @@ export async function registerOpenApi(fastify: FastifyInstance): Promise<void> {
           description: "Metadata-driven CRUD operations",
         },
         {
+          name: "Permissions",
+          description: "Central permission matrix and user permission evaluation",
+        },
+        {
           name: "Health",
           description: "Service health checks",
         },

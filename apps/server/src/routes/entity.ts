@@ -108,7 +108,7 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
     async (request, reply) => {
       try {
         const { name } = request.params as { name: string };
-        const ctx = createEngineContext(request);
+        const ctx = await createEngineContext(request);
         const result = await entityService.list(ctx, name, request.query);
         return reply.send(result);
       } catch (error) {
@@ -137,7 +137,7 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
     async (request, reply) => {
       try {
         const { name, id } = request.params as { name: string; id: string };
-        const ctx = createEngineContext(request);
+        const ctx = await createEngineContext(request);
         const entries = await entityService.listAuditLog(ctx, name, id);
         return reply.send(entries);
       } catch (error) {
@@ -164,7 +164,7 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
     async (request, reply) => {
       try {
         const { name, id } = request.params as { name: string; id: string };
-        const ctx = createEngineContext(request);
+        const ctx = await createEngineContext(request);
         const record = await entityService.get(ctx, name, id);
         return reply.send(record);
       } catch (error) {
@@ -193,7 +193,7 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
     async (request, reply) => {
       try {
         const { name } = request.params as { name: string };
-        const ctx = createEngineContext(request);
+        const ctx = await createEngineContext(request);
         const record = await entityService.create(ctx, name, request.body);
         return reply.status(201).send(record);
       } catch (error) {
@@ -222,7 +222,7 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
     async (request, reply) => {
       try {
         const { name, id } = request.params as { name: string; id: string };
-        const ctx = createEngineContext(request);
+        const ctx = await createEngineContext(request);
         const record = await entityService.update(ctx, name, id, request.body);
         return reply.send(record);
       } catch (error) {
@@ -249,7 +249,7 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
     async (request, reply) => {
       try {
         const { name, id } = request.params as { name: string; id: string };
-        const ctx = createEngineContext(request);
+        const ctx = await createEngineContext(request);
         const result = await entityService.delete(ctx, name, id);
         return reply.send(result);
       } catch (error) {
@@ -266,8 +266,11 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
         tags: entityTags,
         summary: "Run custom entity action",
         params: entityActionParamsSchema,
+        body: entityWriteBodySchema,
         response: {
           200: { type: "object", additionalProperties: true },
+          400: errorResponseSchema,
+          403: errorResponseSchema,
           404: errorResponseSchema,
         },
       },
@@ -279,8 +282,14 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
           id: string;
           action: string;
         };
-        const ctx = createEngineContext(request);
-        const result = await entityService.runAction(ctx, name, id, action);
+        const ctx = await createEngineContext(request);
+        const result = await entityService.runAction(
+          ctx,
+          name,
+          id,
+          action,
+          request.body,
+        );
         return reply.send(result);
       } catch (error) {
         const handled = handleEngineError(error);

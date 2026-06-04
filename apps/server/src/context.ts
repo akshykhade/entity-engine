@@ -1,8 +1,36 @@
-import type { FastifyRequest } from "fastify";
+import { auth } from "@crud-engine/auth";
 import type { EngineContext } from "@crud-engine/engine";
+import type { FastifyRequest } from "fastify";
 
-export function createEngineContext(_request: FastifyRequest): EngineContext {
+function requestHeaders(request: FastifyRequest): Headers {
+  const headers = new Headers();
+
+  for (const [key, value] of Object.entries(request.headers)) {
+    if (value) {
+      headers.append(key, Array.isArray(value) ? value.join(", ") : value);
+    }
+  }
+
+  return headers;
+}
+
+export async function createEngineContext(
+  request: FastifyRequest,
+): Promise<EngineContext> {
+  const session = await auth.api.getSession({
+    headers: requestHeaders(request),
+  });
+
+  if (!session?.user) {
+    return { user: undefined };
+  }
+
   return {
-    user: undefined,
+    user: {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      roles: [],
+    },
   };
 }
