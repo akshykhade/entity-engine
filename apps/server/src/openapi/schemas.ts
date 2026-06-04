@@ -153,4 +153,61 @@ export const deleteResultSchema = {
   required: ["success"],
 } as const;
 
+export const permissionGrantSchema = {
+  type: "object",
+  properties: {
+    role: { type: "string" },
+    entity: { type: "string" },
+    action: { type: "string" },
+    allowed: { type: "boolean" },
+  },
+  required: ["role", "entity", "action", "allowed"],
+} as const;
+
+export const permissionMatrixEntitySchema = {
+  type: "object",
+  properties: {
+    name: { type: "string" },
+    actions: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+  required: ["name", "actions"],
+} as const;
+
+export const permissionMatrixSchema = {
+  type: "object",
+  properties: {
+    roles: {
+      type: "array",
+      items: { type: "string" },
+    },
+    entities: {
+      type: "array",
+      items: permissionMatrixEntitySchema,
+    },
+    grants: {
+      type: "array",
+      items: permissionGrantSchema,
+    },
+  },
+  required: ["roles", "entities", "grants"],
+} as const;
+
+export const permissionMeSchema = {
+  type: "object",
+  properties: {
+    permissions: {
+      type: "object",
+      additionalProperties: {
+        type: "object",
+        additionalProperties: { type: "boolean" },
+      },
+    },
+  },
+  required: ["permissions"],
+} as const;
+
 export const entityTags = ["Entity Engine"] as const;
+export const permissionTags = ["Permissions"] as const;

@@ -6,6 +6,7 @@ import Fastify from "fastify";
 
 import { registerOpenApi } from "./openapi";
 import { registerEntityRoutes } from "./routes/entity";
+import { registerPermissionRoutes } from "./routes/permissions";
 
 const baseCorsConfig = {
   origin: env.CORS_ORIGIN,
@@ -23,6 +24,7 @@ async function start() {
   await fastify.register(fastifyCors, baseCorsConfig);
   await registerOpenApi(fastify);
   await registerEntityRoutes(fastify);
+  await registerPermissionRoutes(fastify);
 
   fastify.route({
     method: ["GET", "POST"],
