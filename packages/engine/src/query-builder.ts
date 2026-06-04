@@ -18,12 +18,17 @@ import {
 } from "drizzle-orm";
 import { isSoftDeleteEnabled, type EntityDefinition } from "@crud-engine/entities";
 
-import { getTableColumn } from "./columns";
 import { badRequest } from "./errors";
 import type { Filter, ListQuery, Sort } from "./types";
 
+function requireColumn(entity: EntityDefinition, fieldName: string) {
+  const col = entity.getColumn(fieldName);
+  if (!col) throw badRequest(`Unknown field "${fieldName}" on entity "${entity.name}"`);
+  return col;
+}
+
 function buildFilterCondition(entity: EntityDefinition, filter: Filter): SQL {
-  const column = getTableColumn(entity, filter.field);
+  const column = requireColumn(entity, filter.field);
 
   switch (filter.operator) {
     case "eq":
@@ -62,7 +67,7 @@ function buildSearchCondition(entity: EntityDefinition, search: string): SQL | u
   }
 
   const conditions = searchableFields.map((fieldName) => {
-    const column = getTableColumn(entity, fieldName);
+    const column = requireColumn(entity, fieldName);
     return like(sql`lower(${column})`, `%${search.toLowerCase()}%`);
   });
 
@@ -74,7 +79,7 @@ function buildSort(entity: EntityDefinition, sort: Sort | undefined) {
     return undefined;
   }
 
-  const column = getTableColumn(entity, sort.field);
+  const column = requireColumn(entity, sort.field);
   return sort.direction === "desc" ? desc(column) : asc(column);
 }
 
@@ -83,7 +88,7 @@ export function buildSoftDeleteCondition(entity: EntityDefinition): SQL | undefi
     return undefined;
   }
 
-  const column = getTableColumn(entity, entity.softDeleteField);
+  const column = requireColumn(entity, entity.softDeleteField);
   return isNull(column);
 }
 
@@ -118,7 +123,7 @@ export function buildWhereClause(
 }
 
 export function buildRecordWhereClause(entity: EntityDefinition, id: string): SQL {
-  const pkColumn = getTableColumn(entity, entity.primaryKey);
+  const pkColumn = requireColumn(entity, entity.primaryKey);
   const conditions: SQL[] = [eq(pkColumn, id)];
 
   const softDeleteCondition = buildSoftDeleteCondition(entity);

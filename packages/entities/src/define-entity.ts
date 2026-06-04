@@ -1,4 +1,4 @@
-import type { SQLiteTableWithColumns } from "drizzle-orm/sqlite-core";
+import type { SQLiteColumn, SQLiteTableWithColumns } from "drizzle-orm/sqlite-core";
 
 import { assertEntityConsistency } from "./assert-entity";
 import {
@@ -41,7 +41,7 @@ export type EntityDefinition<
   table: TTable;
   primaryKey: TPrimaryKey;
   fields: TFields;
-  columns: Record<keyof TFields & string, TTable["_"]["columns"][keyof TFields & string]>;
+  getColumn(fieldName: string): SQLiteColumn | undefined;
   relations: Record<string, RelationDefinition>;
   /** When false, create/update/delete skip audit_log. Default true. */
   audit: boolean;
@@ -150,11 +150,9 @@ export function defineEntity<
     table: config.table,
     primaryKey: config.primaryKey,
     fields: fields as Record<keyof TFields & string, FieldMeta>,
-    columns: columns as EntityDefinition<
-      TTable,
-      Record<keyof TFields & string, FieldMeta>,
-      TPrimaryKey
-    >["columns"],
+    getColumn(fieldName: string): SQLiteColumn | undefined {
+      return (columns[fieldName] ?? (config.table as Record<string, SQLiteColumn | undefined>)[fieldName]) as SQLiteColumn | undefined;
+    },
     relations: config.relations ?? {},
     audit: config.audit ?? true,
     softDelete,

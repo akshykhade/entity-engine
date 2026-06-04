@@ -18,7 +18,6 @@ import {
   logMutation,
   type AuditLogEntry,
 } from "./audit";
-import { getPrimaryKeyColumn } from "./columns";
 import { type ActionRegistry, actionRegistry } from "./define-action";
 import { badRequest, forbidden, notFound, type EngineContext } from "./errors";
 
@@ -272,7 +271,7 @@ export class EntityService {
       }
     }
 
-    const pkColumn = getPrimaryKeyColumn(entity);
+    const pkColumn = entity.getColumn(entity.primaryKey)!;
     const updateData = {
       ...data,
       updatedAt: new Date(),
@@ -316,7 +315,7 @@ export class EntityService {
     await this.assertPermission(ctx, entity.name, "delete");
 
     const before = await this.fetchRecord(entity, id);
-    const pkColumn = getPrimaryKeyColumn(entity);
+    const pkColumn = entity.getColumn(entity.primaryKey)!;
 
     if (isSoftDeleteEnabled(entity) && entity.softDeleteField) {
       const softDeletePayload: Record<string, unknown> = {
