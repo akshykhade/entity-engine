@@ -5,13 +5,12 @@ import { defineReport } from "@crud-engine/reports";
 import { defineWorkflow } from "@crud-engine/workflows";
 
 import { memberActions } from "./actions";
-import { member } from "./entity";
+import { member } from "./model";
 import { memberPermissions } from "./permissions";
 import { memberReports } from "./reports";
 import { memberWorkflow } from "./workflow";
 
-export { member } from "./entity";
-export { members } from "./schema";
+export { member, members } from "./model";
 
 export function registerMember(): void {
   entityRegistry.register(member);

@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 
 import type { ReportDefinition } from "@crud-engine/reports";
 
-import { members } from "./schema";
+import { members } from "./model";
 
 export const memberReports: ReportDefinition[] = [
   {

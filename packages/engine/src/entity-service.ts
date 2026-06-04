@@ -78,12 +78,26 @@ function validateRequiredFields(
   }
 }
 
+function enrichEntityMeta(entity: EntityDefinition): EntityMeta {
+  return {
+    ...toEntityMeta(entity),
+    actions: actionRegistry.listForEntity(entity.name),
+  };
+}
+
 export class EntityService {
   constructor(private readonly db: Db) {}
 
   meta(entityKey: string): EntityMeta {
     const entity = entityRegistry.resolve(entityKey);
-    return toEntityMeta(entity);
+    return enrichEntityMeta(entity);
+  }
+
+  listMeta(): EntityMeta[] {
+    return entityRegistry
+      .list()
+      .map((entity) => enrichEntityMeta(entity))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async list(

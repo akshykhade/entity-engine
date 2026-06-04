@@ -50,8 +50,16 @@ export const fieldMetaSchema = {
     searchable: { type: "boolean" },
     sortable: { type: "boolean" },
     required: { type: "boolean" },
+    storageType: {
+      type: "string",
+      enum: ["text", "number", "boolean", "datetime"],
+    },
+    uiType: {
+      type: "string",
+      enum: ["text", "number", "boolean", "datetime", "email", "textarea", "phone"],
+    },
   },
-  required: ["label"],
+  required: ["label", "required", "storageType", "uiType"],
 } as const;
 
 export const relationMetaSchema = {
@@ -80,8 +88,25 @@ export const entityMetaSchema = {
       type: "object",
       additionalProperties: relationMetaSchema,
     },
+    actions: {
+      type: "array",
+      items: { type: "string" },
+      description: "Registered custom action names for this entity",
+    },
   },
   required: ["name", "slug", "primaryKey", "audit", "softDelete", "fields", "relations"],
+} as const;
+
+export const entityCatalogSchema = {
+  type: "object",
+  properties: {
+    entities: {
+      type: "array",
+      items: entityMetaSchema,
+      description: "All registered entities with metadata for navigation and generic UI",
+    },
+  },
+  required: ["entities"],
 } as const;
 
 export const entityRecordSchema = {
