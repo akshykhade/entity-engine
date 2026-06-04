@@ -52,7 +52,8 @@ export class GrantStore {
         roleNames.includes(g.roleName),
     );
     if (matching.length === 0) return false;
-    return matching.some((g) => g.allowed);
+    if (matching.some((g) => !g.allowed)) return false;
+    return true;
   }
 
   listGrants(): LoadedGrant[] {

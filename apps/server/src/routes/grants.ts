@@ -7,21 +7,21 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
 import { createEngineContext } from "../context";
 
-async function requireAdmin(
+async function requireAdminHook(
   request: FastifyRequest,
   reply: FastifyReply,
-): Promise<boolean> {
+): Promise<void> {
   const ctx = await createEngineContext(request);
   if (!ctx.roles.includes("admin")) {
     reply.status(403).send({ error: "Forbidden", code: "FORBIDDEN" });
-    return false;
   }
-  return true;
 }
 
 export async function registerGrantRoutes(
   fastify: FastifyInstance,
 ): Promise<void> {
+  fastify.addHook("preHandler", requireAdminHook);
+
   fastify.get(
     "/api/grants",
     {
@@ -52,8 +52,7 @@ export async function registerGrantRoutes(
         },
       },
     },
-    async (request, reply) => {
-      if (!(await requireAdmin(request, reply))) return;
+    async (_request, reply) => {
       return reply.send({ grants: grantStore.listGrants() });
     },
   );
@@ -89,8 +88,6 @@ export async function registerGrantRoutes(
       },
     },
     async (request, reply) => {
-      if (!(await requireAdmin(request, reply))) return;
-
       const { roleId, entity, action } = request.params as {
         roleId: string;
         entity: string;
@@ -146,8 +143,6 @@ export async function registerGrantRoutes(
       },
     },
     async (request, reply) => {
-      if (!(await requireAdmin(request, reply))) return;
-
       const { roleId, entity, action } = request.params as {
         roleId: string;
         entity: string;
