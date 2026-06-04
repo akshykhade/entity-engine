@@ -6,4 +6,4 @@ export type {
 } from "./define-entity";
 export { field } from "./field";
 export type { FieldDefinition, FieldMeta } from "./field";
-export { Member, bootstrapEntities, entityRegistry } from "./registry";
+export { entityRegistry } from "./registry";

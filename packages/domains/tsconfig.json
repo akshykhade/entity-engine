@@ -1,0 +1,18 @@
+{
+  "extends": "@crud-engine/config/tsconfig.base.json",
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "composite": true
+  },
+  "references": [
+    { "path": "../schemas" },
+    { "path": "../entities" },
+    { "path": "../engine" },
+    { "path": "../permissions" },
+    { "path": "../reports" },
+    { "path": "../workflows" }
+  ]
+}

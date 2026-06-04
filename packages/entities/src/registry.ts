@@ -1,26 +1,4 @@
-import { defineEntity, toEntityMeta, type EntityDefinition, type EntityMeta } from "./define-entity";
-import { field } from "./field";
-import { members } from "@crud-engine/db/schema/member";
-
-export const Member = defineEntity({
-  name: "Member",
-  table: members,
-  primaryKey: "id",
-  fields: {
-    memberCode: field({
-      label: "Member Code",
-      searchable: true,
-      sortable: true,
-      required: true,
-    }),
-    name: field({
-      label: "Name",
-      searchable: true,
-      sortable: true,
-      required: true,
-    }),
-  },
-});
+import { toEntityMeta, type EntityDefinition, type EntityMeta } from "./define-entity";
 
 class EntityRegistry {
   private entities = new Map<string, EntityDefinition>();
@@ -48,9 +26,3 @@ class EntityRegistry {
 }
 
 export const entityRegistry = new EntityRegistry();
-
-export function bootstrapEntities(): void {
-  entityRegistry.register(Member);
-}
-
-bootstrapEntities();

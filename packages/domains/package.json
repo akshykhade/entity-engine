@@ -1,0 +1,29 @@
+{
+  "name": "@crud-engine/domains",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./member/schema": {
+      "default": "./src/member/schema.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@crud-engine/schemas": "workspace:*",
+    "@crud-engine/entities": "workspace:*",
+    "@crud-engine/engine": "workspace:*",
+    "@crud-engine/permissions": "workspace:*",
+    "@crud-engine/reports": "workspace:*",
+    "@crud-engine/workflows": "workspace:*",
+    "drizzle-orm": "^0.45.1"
+  },
+  "devDependencies": {
+    "@crud-engine/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
