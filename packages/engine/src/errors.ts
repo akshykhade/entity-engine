@@ -1,6 +1,8 @@
 import type { PermissionContext } from "@crud-engine/permissions";
 
-export type EngineContext = PermissionContext;
+export type EngineContext = PermissionContext & {
+  checkPermission: (entity: string, action: string) => Promise<boolean>;
+};
 
 export class EngineError extends Error {
   constructor(

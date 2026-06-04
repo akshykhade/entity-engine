@@ -387,8 +387,7 @@ export class EntityService {
     entity: string,
     action: string,
   ): Promise<void> {
-    const allowed = await this.registries.permissionRegistry.checkPermission(ctx, entity, action);
-    if (!allowed) {
+    if (!(await ctx.checkPermission(entity, action))) {
       throw forbidden();
     }
   }

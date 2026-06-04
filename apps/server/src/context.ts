@@ -4,6 +4,7 @@ import {
   getRoleNamesForUser,
 } from "@crud-engine/auth";
 import type { EngineContext } from "@crud-engine/engine";
+import { permissionRegistry } from "@crud-engine/permissions";
 import type { FastifyRequest } from "fastify";
 
 function requestHeaders(request: FastifyRequest): Headers {
@@ -27,18 +28,27 @@ export async function createEngineContext(
 
   if (!session?.user) {
     const roles = anonymousRoleNames();
-    return { user: undefined, roles };
+    const ctx: EngineContext = {
+      user: undefined,
+      roles,
+      checkPermission: (entity, action) =>
+        permissionRegistry.checkPermission({ user: undefined, roles }, entity, action),
+    };
+    return ctx;
   }
 
   const roles = await getRoleNamesForUser(session.user.id);
-
-  return {
-    user: {
-      id: session.user.id,
-      name: session.user.name,
-      email: session.user.email,
-      roles,
-    },
+  const user = {
+    id: session.user.id,
+    name: session.user.name,
+    email: session.user.email,
     roles,
   };
+  const ctx: EngineContext = {
+    user,
+    roles,
+    checkPermission: (entity, action) =>
+      permissionRegistry.checkPermission({ user, roles }, entity, action),
+  };
+  return ctx;
 }

@@ -24,6 +24,7 @@
         "@crud-engine/domains": "workspace:*",
         "@crud-engine/engine": "workspace:*",
         "@crud-engine/env": "workspace:*",
+        "@crud-engine/permissions": "workspace:*",
         "@fastify/cors": "^11.0.1",
         "@fastify/swagger": "^9.7.0",
         "@scalar/fastify-api-reference": "^1.58.0",
