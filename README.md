@@ -323,8 +323,7 @@ Status key: **Implemented** — used in dev paths · **Partial** — wired but i
 | Package / app | Status | What exists today |
 | --- | --- | --- |
 | `apps/server` | **Implemented** | Generic entity routes, OpenAPI at `/docs`, health check, Better Auth proxy at `/api/auth/*` |
-| `packages/domains` | **Implemented** | Per-entity modules (`member/`: schema, entity, actions, workflow, reports, permissions); bootstrap on import |
-| `packages/schemas` | **Implemented** | Drizzle tables for domain entities (imported via each domain’s `schema.ts`) |
+| `packages/domains` | **Implemented** | Per-entity modules (`member/`: `schema.ts` DDL, entity, actions, workflow, reports, permissions); bootstrap on import |
 | `packages/entities` | **Implemented** | `defineEntity`, `field()`, registry (kernel only; no built-in entities) |
 | `packages/engine` | **Implemented** | CRUD, list/search/filters/sort/pagination, audit, workflow validation on update; action route + registry exist but **no actions registered yet** |
 | `packages/db` | **Implemented** | Drizzle + SQLite; `member`, `audit_log`, Better Auth tables |
@@ -376,7 +375,6 @@ crud-engine/
 │   └── server/           # Generic entity API (Fastify) — backend entrypoint
 ├── packages/
 │   ├── domains/          # Business modules (entity, actions, workflow, reports, permissions per folder)
-│   ├── schemas/          # Drizzle table definitions (shared by db + domains)
 │   ├── entities/         # Entity kernel (defineEntity, registry)
 │   ├── engine/           # Entity service, audit, query builder, actions
 │   ├── workflows/        # Workflow definitions & validation (scaffold)
@@ -396,7 +394,7 @@ How to add or change a business entity in this monorepo. All domain-specific con
 
 1. **One folder per entity** — Everything for `Member`, `Invoice`, etc. lives in `packages/domains/src/<entity>/` (lowercase folder name; PascalCase `name` in `defineEntity`).
 2. **Do not register entities in `packages/entities`** — That package only provides `defineEntity`, `field()`, and `entityRegistry`. Registration happens in each domain’s `index.ts`.
-3. **Do not add business tables only in `packages/db`** — Domain tables are defined in `packages/schemas`, re-exported through the domain’s `schema.ts`, and aggregated in `packages/db/src/schema/index.ts` for `createDb()` and Drizzle Kit.
+3. **Do not add business tables only in `packages/db`** — Domain tables are defined in `packages/domains/src/<entity>/schema.ts` and re-exported from `packages/db/src/schema/index.ts` for `createDb()` (relative path, not a `db` → `domains` package dependency).
 4. **Server bootstraps domains once** — `apps/server` imports `@crud-engine/domains`, which runs `bootstrapDomains()` and registers all modules.
 5. **Mutations go through the entity service** — No ad-hoc Drizzle writes in routes; use generic API + actions/reports as designed.
 
@@ -405,11 +403,8 @@ How to add or change a business entity in this monorepo. All domain-specific con
 Use **`member`** as the reference implementation.
 
 ```
-packages/
-├── schemas/src/
-│   └── member.ts              # Drizzle table (source of truth for DDL)
-└── domains/src/member/
-    ├── schema.ts              # Re-export table for this module
+packages/domains/src/member/
+    ├── schema.ts              # Drizzle table (source of truth for DDL)
     ├── entity.ts              # defineEntity + field metadata
     ├── workflow.ts            # defineWorkflow (optional)
     ├── actions.ts             # defineAction handlers (array)
@@ -420,8 +415,7 @@ packages/
 
 | File | Responsibility |
 | --- | --- |
-| `schemas/src/<entity>.ts` | `sqliteTable` / columns; no business logic |
-| `domains/.../schema.ts` | `export { table } from "@crud-engine/schemas/<entity>"` |
+| `domains/.../schema.ts` | `sqliteTable` / columns; no business logic |
 | `domains/.../entity.ts` | `defineEntity({ name, table, primaryKey, fields })` |
 | `domains/.../workflow.ts` | `WorkflowDefinition` or `undefined` until a status field exists |
 | `domains/.../actions.ts` | `ActionDefinition[]` — custom commands |
@@ -435,7 +429,7 @@ Replace `Invoice` / `invoice` with your names.
 
 #### 1. Create the Drizzle table
 
-**File:** `packages/schemas/src/invoice.ts`
+**File:** `packages/domains/src/invoice/schema.ts`
 
 ```ts
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
@@ -446,13 +440,11 @@ export const invoices = sqliteTable("invoices", {
 });
 ```
 
-Export from `packages/schemas/src/index.ts` if you use barrel exports.
-
 #### 2. Scaffold the domain module
 
 Create `packages/domains/src/invoice/` with:
 
-- **`schema.ts`** — `export { invoices } from "@crud-engine/schemas/invoice";`
+- **`schema.ts`** — Drizzle table definition (`sqliteTable`, columns)
 - **`entity.ts`** — `defineEntity({ name: "Invoice", table: invoices, ... })`
 - **`workflow.ts`** — export `undefined` until you have a lifecycle column
 - **`actions.ts`** — `export const invoiceActions: ActionDefinition[] = [];`
@@ -480,10 +472,10 @@ Re-export public symbols from `./invoice` if other packages need them.
 **File:** `packages/db/src/schema/index.ts`
 
 ```ts
-export { invoices } from "@crud-engine/schemas/invoice";
+export { invoices } from "../../../domains/src/invoice/schema";
 ```
 
-Drizzle Kit already scans `packages/schemas/src` via `packages/db/drizzle.config.ts`. After schema changes:
+Drizzle Kit scans `packages/domains/src` via `packages/db/drizzle.config.ts`. After schema changes:
 
 ```bash
 bun run db:push
@@ -511,7 +503,7 @@ bun -e "import '@crud-engine/domains'; import { entityRegistry } from '@crud-eng
 
 ### SOP: Enable workflow for an entity
 
-1. Add a status column on the table in `packages/schemas`.
+1. Add a status column on the table in `packages/domains/src/<entity>/schema.ts`.
 2. Expose the field in `entity.ts` (`field({ ... })`).
 3. Define workflow in `workflow.ts`:
 
@@ -596,7 +588,7 @@ Actions: `"read" | "create" | "update" | "delete"`. Multiple rules for the same 
 
 ### SOP: Change an existing entity
 
-1. Edit table in `packages/schemas` → `db:push` or migrate.
+1. Edit table in `packages/domains/src/<entity>/schema.ts` → `db:push` or migrate.
 2. Update `entity.ts` fields to match columns (add/remove `field()` entries).
 3. Adjust workflow/actions/reports/permissions in the same domain folder.
 4. Run `check-types` and hit `/meta` + one CRUD path in OpenAPI.
@@ -605,7 +597,7 @@ Never change generic routes in `apps/server` for one entity — extend metadata 
 
 ### Checklist (copy per PR)
 
-- [ ] `packages/schemas/src/<entity>.ts` created or updated
+- [ ] `packages/domains/src/<entity>/schema.ts` created or updated
 - [ ] `packages/domains/src/<entity>/` complete (7 files)
 - [ ] `register<Entity>()` called from `domains/src/index.ts`
 - [ ] `packages/db/src/schema/index.ts` re-exports table
@@ -618,7 +610,7 @@ Never change generic routes in `apps/server` for one entity — extend metadata 
 | Avoid | Do instead |
 | --- | --- |
 | `defineEntity` inside `packages/entities` | Register in `domains/.../index.ts` |
-| Table only in `packages/db/src/schema` | Define in `packages/schemas`, re-export in db + domain |
+| Table only in `packages/db/src/schema` | Define in `domains/.../schema.ts`, re-export in `db/src/schema/index.ts` |
 | New Fastify route per entity | Generic `/api/entity/:name` routes |
 | Report logic via list/search CRUD | `reports.ts` with SQL/Drizzle |
 | Direct `db.insert` from `apps/server` | Entity service / actions |
@@ -626,15 +618,14 @@ Never change generic routes in `apps/server` for one entity — extend metadata 
 ### Package dependency rules
 
 ```
-schemas          → drizzle-orm only
 entities         → drizzle-orm (types)
-domains          → schemas, entities, engine, workflows, permissions, reports
-db               → schemas (+ auth/audit infra tables)
+domains          → drizzle-orm, entities, engine, workflows, permissions, reports
+db               → infra tables in `db/schema` + relative re-exports of domain `schema.ts`
 engine           → db, entities, workflows, permissions
 server           → domains (bootstrap), engine, db, auth
 ```
 
-Do not make `db` depend on `domains` (causes a circular dependency with `engine` / `reports`). Shared tables live in **`schemas`**.
+Do not add `@crud-engine/domains` as a dependency of `packages/db` (causes a circular dependency with `engine` / `reports`). Re-export domain tables from `db/src/schema/index.ts` via a **relative path** instead.
 
 ---
 

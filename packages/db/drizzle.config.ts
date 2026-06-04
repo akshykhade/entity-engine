@@ -6,7 +6,7 @@ dotenv.config({
 });
 
 export default defineConfig({
-  schema: ["./src/schema", "../schemas/src"],
+  schema: ["./src/schema", "../domains/src"],
   out: "./src/migrations",
   dialect: "turso",
   dbCredentials: {
