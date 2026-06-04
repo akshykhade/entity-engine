@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 
 import { apiFetch } from "../helpers";
 
@@ -30,6 +30,57 @@ async function fetchAuditLog(id: string) {
 }
 
 describe("Member audit API", () => {
+  beforeAll(async () => {
+    // Get role IDs
+    const rolesRes = await apiFetch("/api/roles");
+    const rolesBody = (await rolesRes.json()) as { roles: { id: string; name: string }[] };
+    const adminRole = rolesBody.roles.find((r) => r.name === "admin");
+    const publicRole = rolesBody.roles.find((r) => r.name === "public");
+    const publicRoleId = publicRole!.id;
+
+    // Sign up admin user
+    const email = "admin-audit@test.local";
+    const password = "AdminPass123!";
+    await apiFetch("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Admin Audit", email, password }),
+    });
+
+    // Sign in to get user id
+    const signInRes = await apiFetch("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const signInBody = (await signInRes.json()) as { user: { id: string } };
+    const userId = signInBody.user.id;
+
+    // Assign admin role
+    await apiFetch("/api/test/assign-role", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, roleId: adminRole!.id }),
+    });
+
+    // Sign in again to get session with admin role
+    const signInRes2 = await apiFetch("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const adminCookies = signInRes2.headers.get("set-cookie") ?? "";
+
+    // Add grants for public role
+    for (const action of ["read", "create", "update", "delete"]) {
+      await apiFetch(`/api/grants/${publicRoleId}/Member/${action}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Cookie: adminCookies },
+        body: JSON.stringify({ allowed: true }),
+      });
+    }
+  });
+
   test("GET /api/entity/Member/:id/audit_log records create, update, and delete", async () => {
     const record = await createMember("M-AUDIT", "Audit Subject");
 

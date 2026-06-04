@@ -68,6 +68,21 @@ async function start() {
     },
   });
 
+  if (process.env.NODE_ENV === "test") {
+    const dbModule = await import("@crud-engine/db");
+    const roleSchema = await import("@crud-engine/db/schema/role");
+
+    fastify.post("/api/test/assign-role", async (request, reply) => {
+      const { userId, roleId } = request.body as { userId: string; roleId: string };
+      const db = dbModule.createDb();
+      await db
+        .insert(roleSchema.userRoles)
+        .values({ id: crypto.randomUUID(), userId, roleId })
+        .onConflictDoNothing();
+      return reply.send({ success: true });
+    });
+  }
+
   fastify.get(
     "/",
     {
