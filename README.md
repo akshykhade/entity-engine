@@ -2,7 +2,8 @@
 
 An ERP **platform** where business modules (CRM, Inventory, Purchase, Sales, Accounting, Manufacturing, Milk Collection, and more) are built from shared primitives—not bespoke applications per domain.
 
-**This repository is the backend layer:** entity definitions, metadata-driven generic API, entity service (CRUD, audit, permissions, workflows, actions), and database infrastructure. A separate frontend (generic UI engine, `EntityTable`, `EntityForm`, theming) is planned—not implemented here yet.
+**This repository is the backend layer:** entity definitions, metadata-driven generic API, entity service (CRUD, audit, permissions, workflows, actions), and database infrastructure. A separate
+frontend (generic UI engine, `EntityTable`, `EntityForm`, theming) is planned—not implemented here yet.
 
 Everything below describes the full platform vision; [implementation status](#implementation-status) reflects what exists in this repo today.
 
@@ -28,12 +29,12 @@ Systems that solve similar problems:
 Most ERP systems are primarily **metadata**.
 
 | What developers often see | What ERP architects see |
-| --- | --- |
-| Forms | Entities |
-| Tables | Relationships |
-| APIs | Permissions |
-| Reports | Workflows |
-| | Actions |
+| ------------------------- | ----------------------- |
+| Forms                     | Entities                |
+| Tables                    | Relationships           |
+| APIs                      | Permissions             |
+| Reports                   | Workflows               |
+|                           | Actions                 |
 
 Everything else should be **generated**.
 
@@ -75,13 +76,13 @@ Represents business data (Member, Invoice, Customer, Payment, Inventory …).
 
 ```ts
 defineEntity({
-  name: "Member",
-  fields: {
-    memberCode: string(),
-    name: string(),
-    mobile: string(),
-  },
-});
+    name: 'Member',
+    fields: {
+        memberCode: string(),
+        name: string(),
+        mobile: string(),
+    },
+})
 ```
 
 ### Workflow
@@ -90,9 +91,9 @@ Represents lifecycle transitions (Draft, Approved, Rejected, Paid, Cancelled, �
 
 ```ts
 defineWorkflow({
-  entity: "Invoice",
-  states: ["Draft", "Approved", "Paid"],
-});
+    entity: 'Invoice',
+    states: ['Draft', 'Approved', 'Paid'],
+})
 ```
 
 ### Action
@@ -101,9 +102,9 @@ Represents business commands (Approve Invoice, Cancel Invoice, Generate Payment,
 
 ```ts
 defineAction({
-  entity: "Invoice",
-  name: "Approve",
-});
+    entity: 'Invoice',
+    name: 'Approve',
+})
 ```
 
 Actions matter more than CRUD in real ERP systems.
@@ -114,10 +115,10 @@ Represents access control.
 
 ```ts
 definePermission({
-  entity: "Invoice",
-  read: ["admin", "accountant"],
-  update: ["admin"],
-});
+    entity: 'Invoice',
+    read: ['admin', 'accountant'],
+    update: ['admin'],
+})
 ```
 
 ## Entity engine
@@ -135,14 +136,14 @@ The entity engine is the ERP kernel. It owns:
 
 ```ts
 defineEntity({
-  name: "Member",
-  fields: {
-    name: field({
-      label: "Member Name",
-      searchable: true,
-    }),
-  },
-});
+    name: 'Member',
+    fields: {
+        name: field({
+            label: 'Member Name',
+            searchable: true,
+        }),
+    },
+})
 ```
 
 ## Generic API engine
@@ -168,7 +169,7 @@ DELETE /api/entity/:entity/:id
 The API layer should not know business entities—it only understands metadata:
 
 ```ts
-const entity = registry.get("Member");
+const entity = registry.get('Member')
 ```
 
 ## Generic UI engine (planned)
@@ -320,35 +321,35 @@ These are the **operating system** of the ERP platform. Everything else is gener
 
 Status key: **Implemented** — used in dev paths · **Partial** — wired but incomplete or unused · **Scaffold** — types/registry only · **Planned** — not started in this repo · **Infra** — tooling only
 
-| Package / app | Status | What exists today |
-| --- | --- | --- |
-| `apps/server` | **Implemented** | Generic entity routes, OpenAPI at `/docs`, health check, Better Auth proxy at `/api/auth/*` |
-| `packages/domains` | **Implemented** | Per-entity modules (`member/`: `model.ts` table + entity, actions, workflow, reports, permissions); bootstrap on import |
-| `packages/entities` | **Implemented** | `defineEntity`, `field()`, registry (kernel only; no built-in entities) |
-| `packages/engine` | **Implemented** | CRUD, list/search/filters/sort/pagination, audit, workflow validation on update; action route + registry exist but **no actions registered yet** |
-| `packages/db` | **Implemented** | Drizzle + SQLite; `member`, `audit_log`, Better Auth tables |
-| `packages/auth` | **Implemented** | Better Auth (email/password) with Drizzle adapter |
-| `packages/env` | **Implemented** | Zod-validated server environment |
-| `packages/workflows` | **Scaffold** | `defineWorkflow`, registry, transition validation; **no workflows registered** |
-| `packages/permissions` | **Scaffold** | `definePermission`, registry; **no rules registered**; default allow when no rules |
-| `packages/reports` | **Partial** | `defineReport` + registry; sample `member-count` registered in domains; **no report HTTP API yet** |
-| `apps/server` (auth context) | **Partial** | `createEngineContext` returns `user: undefined` — permissions not tied to session yet |
-| `packages/entities` (relations) | **Planned** | No relationship fields or joins in definitions |
-| `apps/web` (frontend) | **Planned** | No frontend app in this repo; UI lives in a separate project |
-| `packages/config` | **Infra** | Shared TypeScript config |
+| Package / app                   | Status          | What exists today                                                                                                                                |
+| ------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/server`                   | **Implemented** | Generic entity routes, OpenAPI at `/docs`, health check, Better Auth proxy at `/api/auth/*`                                                      |
+| `packages/domains`              | **Implemented** | Per-entity modules (`member/`: `model.ts` table + entity, actions, workflow, reports, permissions); bootstrap on import                          |
+| `packages/entities`             | **Implemented** | `defineEntity`, `field()`, registry (kernel only; no built-in entities)                                                                          |
+| `packages/engine`               | **Implemented** | CRUD, list/search/filters/sort/pagination, audit, workflow validation on update; action route + registry exist but **no actions registered yet** |
+| `packages/db`                   | **Implemented** | Drizzle + SQLite; `member`, `audit_log`, Better Auth tables                                                                                      |
+| `packages/auth`                 | **Implemented** | Better Auth (email/password) with Drizzle adapter                                                                                                |
+| `packages/env`                  | **Implemented** | Zod-validated server environment                                                                                                                 |
+| `packages/workflows`            | **Scaffold**    | `defineWorkflow`, registry, transition validation; **no workflows registered**                                                                   |
+| `packages/permissions`          | **Scaffold**    | `definePermission`, registry; **no rules registered**; default allow when no rules                                                               |
+| `packages/reports`              | **Partial**     | `defineReport` + registry; sample `member-count` registered in domains; **no report HTTP API yet**                                               |
+| `apps/server` (auth context)    | **Partial**     | `createEngineContext` returns `user: undefined` — permissions not tied to session yet                                                            |
+| `packages/entities` (relations) | **Planned**     | No relationship fields or joins in definitions                                                                                                   |
+| `apps/web` (frontend)           | **Planned**     | No frontend app in this repo; UI lives in a separate project                                                                                     |
+| `packages/config`               | **Infra**       | Shared TypeScript config                                                                                                                         |
 
 ### Generic API (implemented)
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/entities` | Catalog of all registered entities (metadata for navigation / generic UI) |
-| `GET` | `/api/entity/:name/meta` | Entity metadata for clients / future UI |
-| `GET` | `/api/entity/:name` | List (search, filters, sort, pagination) |
-| `GET` | `/api/entity/:name/:id` | Get one record |
-| `POST` | `/api/entity/:name` | Create |
-| `PUT` | `/api/entity/:name/:id` | Update (runs workflow validation when configured) |
-| `DELETE` | `/api/entity/:name/:id` | Delete |
-| `POST` | `/api/entity/:name/:id/action/:action` | Run registered custom action |
+| Method   | Path                                   | Purpose                                                                   |
+| -------- | -------------------------------------- | ------------------------------------------------------------------------- |
+| `GET`    | `/api/entities`                        | Catalog of all registered entities (metadata for navigation / generic UI) |
+| `GET`    | `/api/entity/:name/meta`               | Entity metadata for clients / future UI                                   |
+| `GET`    | `/api/entity/:name`                    | List (search, filters, sort, pagination)                                  |
+| `GET`    | `/api/entity/:name/:id`                | Get one record                                                            |
+| `POST`   | `/api/entity/:name`                    | Create                                                                    |
+| `PUT`    | `/api/entity/:name/:id`                | Update (runs workflow validation when configured)                         |
+| `DELETE` | `/api/entity/:name/:id`                | Delete                                                                    |
+| `POST`   | `/api/entity/:name/:id/action/:action` | Run registered custom action                                              |
 
 ### Sample entity
 
@@ -389,13 +390,15 @@ crud-engine/
 
 ## Standard operating procedure (SOP)
 
-How to add or change a business entity in this monorepo. All domain-specific configuration lives under **`packages/domains`**; kernel packages (`entities`, `engine`, `workflows`, `permissions`, `reports`) stay generic.
+How to add or change a business entity in this monorepo. All domain-specific configuration lives under **`packages/domains`**; kernel packages (`entities`, `engine`, `workflows`, `permissions`,
+`reports`) stay generic.
 
 ### Principles
 
 1. **One folder per entity** — Everything for `Member`, `Invoice`, etc. lives in `packages/domains/src/<entity>/` (lowercase folder name; PascalCase `name` in `defineEntity`).
 2. **Do not register entities in `packages/entities`** — That package only provides `defineEntity`, `field()`, and `entityRegistry`. Registration happens in each domain’s `index.ts`.
-3. **Do not add business tables only in `packages/db`** — Domain tables are defined in `packages/domains/src/<entity>/model.ts` and re-exported from `packages/db/src/schema/index.ts` for `createDb()` (relative path, not a `db` → `domains` package dependency).
+3. **Do not add business tables only in `packages/db`** — Domain tables are defined in `packages/domains/src/<entity>/model.ts` and re-exported from `packages/db/src/schema/index.ts` for `createDb()`
+   (relative path, not a `db` → `domains` package dependency).
 4. **Server bootstraps domains once** — `apps/server` imports `@crud-engine/domains`, which runs `bootstrapDomains()` and registers all modules.
 5. **Mutations go through the entity service** — No ad-hoc Drizzle writes in routes; use generic API + actions/reports as designed.
 
@@ -413,14 +416,14 @@ packages/domains/src/member/
     └── index.ts               # registerMember() — wires all of the above
 ```
 
-| File | Responsibility |
-| --- | --- |
-| `domains/.../model.ts` | `sqliteTable` + `defineEntity` with `field(column, { label, ... })` (types inferred from columns) |
-| `domains/.../workflow.ts` | `WorkflowDefinition` or `undefined` until a status field exists |
-| `domains/.../actions.ts` | `ActionDefinition[]` — custom commands |
-| `domains/.../reports.ts` | `ReportDefinition[]` — SQL/analytics (not CRUD) |
-| `domains/.../permissions.ts` | `PermissionDefinition[]` — per entity + action |
-| `domains/.../index.ts` | `register<Entity>()` calling all registries |
+| File                         | Responsibility                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- |
+| `domains/.../model.ts`       | `sqliteTable` + `defineEntity` with `field(column, { label, ... })` (types inferred from columns) |
+| `domains/.../workflow.ts`    | `WorkflowDefinition` or `undefined` until a status field exists                                   |
+| `domains/.../actions.ts`     | `ActionDefinition[]` — custom commands                                                            |
+| `domains/.../reports.ts`     | `ReportDefinition[]` — SQL/analytics (not CRUD)                                                   |
+| `domains/.../permissions.ts` | `PermissionDefinition[]` — per entity + action                                                    |
+| `domains/.../index.ts`       | `register<Entity>()` calling all registries                                                       |
 
 ### SOP: Add a new entity
 
@@ -431,22 +434,22 @@ Replace `Invoice` / `invoice` with your names.
 **File:** `packages/domains/src/invoice/model.ts`
 
 ```ts
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { defineEntity, field } from "@crud-engine/entities";
+import { sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { defineEntity, field } from '@crud-engine/entities'
 
-export const invoices = sqliteTable("invoices", {
-  id: text("id").primaryKey(),
-  // ...columns
-});
+export const invoices = sqliteTable('invoices', {
+    id: text('id').primaryKey(),
+    // ...columns
+})
 
 export const invoice = defineEntity({
-  name: "Invoice",
-  table: invoices,
-  primaryKey: "id",
-  fields: {
-    // field(invoices.someColumn, { label: "..." })
-  },
-});
+    name: 'Invoice',
+    table: invoices,
+    primaryKey: 'id',
+    fields: {
+        // field(invoices.someColumn, { label: "..." })
+    },
+})
 ```
 
 #### 2. Scaffold the domain module
@@ -465,11 +468,11 @@ Create `packages/domains/src/invoice/` with:
 **File:** `packages/domains/src/index.ts`
 
 ```ts
-import { registerInvoice } from "./invoice";
+import { registerInvoice } from './invoice'
 
 export function bootstrapDomains(): void {
-  registerMember();
-  registerInvoice();
+    registerMember()
+    registerInvoice()
 }
 ```
 
@@ -480,7 +483,7 @@ Re-export public symbols from `./invoice` if other packages need them.
 **File:** `packages/db/src/schema/index.ts`
 
 ```ts
-export { invoices } from "../../../domains/src/invoice/schema";
+export { invoices } from '../../../domains/src/invoice/schema'
 ```
 
 Drizzle Kit scans `packages/domains/src` via `packages/db/drizzle.config.ts`. After schema changes:
@@ -516,16 +519,14 @@ bun -e "import '@crud-engine/domains'; import { entityRegistry } from '@crud-eng
 3. Define workflow in `workflow.ts`:
 
 ```ts
-import type { WorkflowDefinition } from "@crud-engine/workflows";
+import type { WorkflowDefinition } from '@crud-engine/workflows'
 
 export const invoiceWorkflow: WorkflowDefinition = {
-  entity: "Invoice",
-  field: "status",
-  states: ["Draft", "Approved", "Paid"],
-  transitions: [
-    { from: "Draft", to: "Approved", action: "approve" },
-  ],
-};
+    entity: 'Invoice',
+    field: 'status',
+    states: ['Draft', 'Approved', 'Paid'],
+    transitions: [{ from: 'Draft', to: 'Approved', action: 'approve' }],
+}
 ```
 
 4. `registerInvoice()` already calls `defineWorkflow` when the export is non-undefined.
@@ -536,19 +537,19 @@ export const invoiceWorkflow: WorkflowDefinition = {
 **File:** `domains/src/invoice/actions.ts`
 
 ```ts
-import { defineAction } from "@crud-engine/engine";
-import type { ActionDefinition } from "@crud-engine/engine";
+import { defineAction } from '@crud-engine/engine'
+import type { ActionDefinition } from '@crud-engine/engine'
 
 export const invoiceActions: ActionDefinition[] = [
-  {
-    entity: "Invoice",
-    name: "approve",
-    handler: async (ctx, id, body) => {
-      // use ctx + entity service patterns; return result
-      return { ok: true, id };
+    {
+        entity: 'Invoice',
+        name: 'approve',
+        handler: async (ctx, id, body) => {
+            // use ctx + entity service patterns; return result
+            return { ok: true, id }
+        },
     },
-  },
-];
+]
 ```
 
 API: `POST /api/entity/Invoice/:id/action/approve`
@@ -560,18 +561,18 @@ Register matching permissions in `permissions.ts` when auth is wired (today CRUD
 **File:** `domains/src/invoice/reports.ts`
 
 ```ts
-import type { ReportDefinition } from "@crud-engine/reports";
-import { invoices } from "./schema";
+import type { ReportDefinition } from '@crud-engine/reports'
+import { invoices } from './schema'
 
 export const invoiceReports: ReportDefinition[] = [
-  {
-    name: "invoice-summary",
-    execute: async (ctx) => {
-      // Prefer Drizzle/SQL here — not the generic CRUD list endpoint
-      return { total: 0 };
+    {
+        name: 'invoice-summary',
+        execute: async (ctx) => {
+            // Prefer Drizzle/SQL here — not the generic CRUD list endpoint
+            return { total: 0 }
+        },
     },
-  },
-];
+]
 ```
 
 Reports are registered in the report registry; a dedicated HTTP route for reports is **not implemented yet** — registry + `execute` are ready for a future `/api/report/:name` (or similar).
@@ -581,15 +582,15 @@ Reports are registered in the report registry; a dedicated HTTP route for report
 **File:** `domains/src/invoice/permissions.ts`
 
 ```ts
-import type { PermissionDefinition } from "@crud-engine/permissions";
+import type { PermissionDefinition } from '@crud-engine/permissions'
 
 export const invoicePermissions: PermissionDefinition[] = [
-  {
-    entity: "Invoice",
-    action: "read",
-    check: (ctx) => Boolean(ctx.user),
-  },
-];
+    {
+        entity: 'Invoice',
+        action: 'read',
+        check: (ctx) => Boolean(ctx.user),
+    },
+]
 ```
 
 Actions: `"read" | "create" | "update" | "delete"`. Multiple rules for the same entity/action must all pass. Custom action permissions are planned; use the action registry + route guards until then.
@@ -615,13 +616,13 @@ Never change generic routes in `apps/server` for one entity — extend metadata 
 
 ### What not to do
 
-| Avoid | Do instead |
-| --- | --- |
-| `defineEntity` inside `packages/entities` | Register in `domains/.../index.ts` |
-| Table only in `packages/db/src/schema` | Define in `domains/.../model.ts`, re-export in `db/src/schema/index.ts` |
-| New Fastify route per entity | Generic `/api/entity/:name` routes |
-| Report logic via list/search CRUD | `reports.ts` with SQL/Drizzle |
-| Direct `db.insert` from `apps/server` | Entity service / actions |
+| Avoid                                     | Do instead                                                              |
+| ----------------------------------------- | ----------------------------------------------------------------------- |
+| `defineEntity` inside `packages/entities` | Register in `domains/.../index.ts`                                      |
+| Table only in `packages/db/src/schema`    | Define in `domains/.../model.ts`, re-export in `db/src/schema/index.ts` |
+| New Fastify route per entity              | Generic `/api/entity/:name` routes                                      |
+| Report logic via list/search CRUD         | `reports.ts` with SQL/Drizzle                                           |
+| Direct `db.insert` from `apps/server`     | Entity service / actions                                                |
 
 ### Package dependency rules
 
@@ -633,7 +634,8 @@ engine           → db, entities, workflows, permissions
 server           → domains (bootstrap), engine, db, auth
 ```
 
-Do not add `@crud-engine/domains` as a dependency of `packages/db` (causes a circular dependency with `engine` / `reports`). Re-export domain tables from `db/src/schema/index.ts` via a **relative path** instead.
+Do not add `@crud-engine/domains` as a dependency of `packages/db` (causes a circular dependency with `engine` / `reports`). Re-export domain tables from `db/src/schema/index.ts` via a **relative
+path** instead.
 
 ---
 
@@ -676,17 +678,17 @@ Set `CORS_ORIGIN` in `apps/server/.env` for any client that calls the API (requi
 
 ## Scripts
 
-| Command | Description |
-| --- | --- |
-| `bun run dev` | Start all apps in development |
-| `bun run build` | Build all packages and apps |
-| `bun run dev:server` | Start API only |
-| `bun run check-types` | Typecheck the monorepo |
-| `bun run db:push` | Push schema to the database |
+| Command               | Description                   |
+| --------------------- | ----------------------------- |
+| `bun run dev`         | Start all apps in development |
+| `bun run build`       | Build all packages and apps   |
+| `bun run dev:server`  | Start API only                |
+| `bun run check-types` | Typecheck the monorepo        |
+| `bun run db:push`     | Push schema to the database   |
 | `bun run db:generate` | Generate Drizzle client/types |
-| `bun run db:migrate` | Run migrations |
-| `bun run db:studio` | Open Drizzle Studio |
-| `bun run db:local` | Start local SQLite |
+| `bun run db:migrate`  | Run migrations                |
+| `bun run db:studio`   | Open Drizzle Studio           |
+| `bun run db:local`    | Start local SQLite            |
 
 ## Planning — frontend & UI
 
