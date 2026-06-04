@@ -6,7 +6,7 @@ import {
   type PermissionContext,
   type PermissionMatrix,
 } from "@crud-engine/permissions";
-import { listRoles } from "@crud-engine/roles";
+import { listRoles } from "@crud-engine/auth";
 
 import { actionRegistry } from "./define-action";
 

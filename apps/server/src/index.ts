@@ -1,7 +1,6 @@
-import { auth } from "@crud-engine/auth";
+import { auth, ensurePublicRole } from "@crud-engine/auth";
 import "@crud-engine/domains";
 import { env } from "@crud-engine/env/server";
-import { ensurePublicRole } from "@crud-engine/roles";
 import fastifyCors from "@fastify/cors";
 import Fastify from "fastify";
 
