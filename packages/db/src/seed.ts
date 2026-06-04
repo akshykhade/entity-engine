@@ -29,7 +29,8 @@ async function seed(): Promise<void> {
     }
   }
 
-  const adminRoleId = roleMap["admin"]!;
+  const adminRoleId = roleMap["admin"];
+  if (!adminRoleId) throw new Error("Admin role not seeded");
   await db
     .insert(permissionGrants)
     .values({
