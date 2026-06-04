@@ -15,6 +15,8 @@ export type PermissionContext = {
     email?: string;
     roles?: string[];
   };
+  /** Effective roles for this request (e.g. public for anonymous). */
+  roles: string[];
 };
 
 export type PermissionDefinition = {

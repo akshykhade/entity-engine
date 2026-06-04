@@ -1,12 +1,14 @@
 import { auth } from "@crud-engine/auth";
 import "@crud-engine/domains";
 import { env } from "@crud-engine/env/server";
+import { ensurePublicRole } from "@crud-engine/roles";
 import fastifyCors from "@fastify/cors";
 import Fastify from "fastify";
 
 import { registerOpenApi } from "./openapi";
 import { registerEntityRoutes } from "./routes/entity";
 import { registerPermissionRoutes } from "./routes/permissions";
+import { registerRoleRoutes } from "./routes/roles";
 
 const baseCorsConfig = {
   origin: env.CORS_ORIGIN,
@@ -21,9 +23,11 @@ const fastify = Fastify({
 });
 
 async function start() {
+  await ensurePublicRole();
   await fastify.register(fastifyCors, baseCorsConfig);
   await registerOpenApi(fastify);
   await registerEntityRoutes(fastify);
+  await registerRoleRoutes(fastify);
   await registerPermissionRoutes(fastify);
 
   fastify.route({

@@ -28,7 +28,7 @@ export async function registerPermissionRoutes(
       },
     },
     async (_request, reply) => {
-      return reply.send(listPermissionMatrix());
+      return reply.send(await listPermissionMatrix());
     },
   );
 
@@ -48,7 +48,7 @@ export async function registerPermissionRoutes(
     async (request, reply) => {
       const ctx = await createEngineContext(request);
       const permissions = await listPermissionsForUser(ctx);
-      return reply.send({ permissions });
+      return reply.send({ roles: ctx.roles, permissions });
     },
   );
 }

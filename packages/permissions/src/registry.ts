@@ -62,9 +62,9 @@ class PermissionRegistry {
       return true;
     }
 
-    const userRoles = ctx.user?.roles ?? [];
+    const effectiveRoles = ctx.roles.length > 0 ? ctx.roles : (ctx.user?.roles ?? []);
     return matchingGrants.some(
-      (grant) => grant.allowed && userRoles.includes(grant.role),
+      (grant) => grant.allowed && effectiveRoles.includes(grant.role),
     );
   }
 }
