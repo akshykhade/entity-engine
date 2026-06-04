@@ -79,7 +79,7 @@ async function start() {
 
   await fastify.listen({ port: 3000 });
   console.log("Server running on port 3000");
-  console.log("OpenAPI docs available at http://localhost:3000/docs");
+  console.log("API reference available at http://localhost:3000/docs");
 }
 
 start().catch((err) => {

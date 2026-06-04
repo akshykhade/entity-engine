@@ -1,5 +1,5 @@
 import swagger from "@fastify/swagger";
-import swaggerUi from "@fastify/swagger-ui";
+import scalarApiReference from "@scalar/fastify-api-reference";
 import type { FastifyInstance } from "fastify";
 
 export async function registerOpenApi(fastify: FastifyInstance): Promise<void> {
@@ -35,11 +35,10 @@ export async function registerOpenApi(fastify: FastifyInstance): Promise<void> {
     },
   });
 
-  await fastify.register(swaggerUi, {
+  await fastify.register(scalarApiReference, {
     routePrefix: "/docs",
-    uiConfig: {
-      docExpansion: "list",
-      deepLinking: true,
+    configuration: {
+      title: "CRUD Engine API",
     },
   });
 }
