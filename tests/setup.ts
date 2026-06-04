@@ -44,6 +44,24 @@ async function pushSchema(dbFile: string): Promise<void> {
   }
 }
 
+async function runSeed(dbFile: string): Promise<void> {
+  const proc = Bun.spawn({
+    cmd: ["bun", "run", "src/seed.ts"],
+    cwd: join(repoRoot, "packages/db"),
+    env: {
+      ...process.env,
+      DATABASE_URL: `file:${dbFile}`,
+    } as Record<string, string>,
+    stdout: "inherit",
+    stderr: "inherit",
+  });
+
+  const code = await proc.exited;
+  if (code !== 0) {
+    throw new Error(`db seed failed with exit code ${code}`);
+  }
+}
+
 async function waitForServer(baseUrl: string, timeoutMs = 30_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
 
@@ -78,6 +96,7 @@ beforeAll(async () => {
 
   const dbFile = join(testsDir, ".data", "test.sqlite");
   await pushSchema(dbFile);
+  await runSeed(dbFile);
 
   setupState.serverProc = Bun.spawn({
     cmd: ["bun", "run", "src/index.ts"],
