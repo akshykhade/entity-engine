@@ -1,8 +1,7 @@
 import {
-  EngineError,
   entityService,
 } from "@crud-engine/engine";
-import type { FastifyInstance, FastifyReply } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { createEngineContext } from "../context";
 import {
@@ -20,46 +19,6 @@ import {
   listQuerySchema,
   listResultSchema,
 } from "../openapi/schemas";
-
-function handleEngineError(error: unknown) {
-  if (error instanceof EngineError) {
-    return {
-      statusCode: error.statusCode,
-      body: {
-        error: error.message,
-        code: error.code,
-      },
-    };
-  }
-
-  if (error instanceof Error && error.message.includes("not found")) {
-    return {
-      statusCode: 404,
-      body: {
-        error: error.message,
-        code: "NOT_FOUND",
-      },
-    };
-  }
-
-  throw error;
-}
-
-function sendEngineError(
-  reply: FastifyReply,
-  handled: { statusCode: number; body: { error: string; code: string } },
-) {
-  switch (handled.statusCode) {
-    case 400:
-      return reply.status(400).send(handled.body);
-    case 403:
-      return reply.status(403).send(handled.body);
-    case 404:
-      return reply.status(404).send(handled.body);
-    default:
-      return reply.status(500).send(handled.body);
-  }
-}
 
 export async function registerEntityRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
@@ -95,14 +54,9 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
       },
     },
     async (request, reply) => {
-      try {
-        const { name } = request.params as { name: string };
-        const meta = entityService.meta(name);
-        return reply.send(meta);
-      } catch (error) {
-        const handled = handleEngineError(error);
-        return sendEngineError(reply, handled);
-      }
+      const { name } = request.params as { name: string };
+      const meta = entityService.meta(name);
+      return reply.send(meta);
     },
   );
 
@@ -125,15 +79,10 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
       },
     },
     async (request, reply) => {
-      try {
-        const { name } = request.params as { name: string };
-        const ctx = await createEngineContext(request);
-        const result = await entityService.list(ctx, name, request.query);
-        return reply.send(result);
-      } catch (error) {
-        const handled = handleEngineError(error);
-        return sendEngineError(reply, handled);
-      }
+      const { name } = request.params as { name: string };
+      const ctx = await createEngineContext(request);
+      const result = await entityService.list(ctx, name, request.query);
+      return reply.send(result);
     },
   );
 
@@ -154,15 +103,10 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
       },
     },
     async (request, reply) => {
-      try {
-        const { name, id } = request.params as { name: string; id: string };
-        const ctx = await createEngineContext(request);
-        const entries = await entityService.listAuditLog(ctx, name, id);
-        return reply.send(entries);
-      } catch (error) {
-        const handled = handleEngineError(error);
-        return sendEngineError(reply, handled);
-      }
+      const { name, id } = request.params as { name: string; id: string };
+      const ctx = await createEngineContext(request);
+      const entries = await entityService.listAuditLog(ctx, name, id);
+      return reply.send(entries);
     },
   );
 
@@ -181,15 +125,10 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
       },
     },
     async (request, reply) => {
-      try {
-        const { name, id } = request.params as { name: string; id: string };
-        const ctx = await createEngineContext(request);
-        const record = await entityService.get(ctx, name, id);
-        return reply.send(record);
-      } catch (error) {
-        const handled = handleEngineError(error);
-        return sendEngineError(reply, handled);
-      }
+      const { name, id } = request.params as { name: string; id: string };
+      const ctx = await createEngineContext(request);
+      const record = await entityService.get(ctx, name, id);
+      return reply.send(record);
     },
   );
 
@@ -210,15 +149,10 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
       },
     },
     async (request, reply) => {
-      try {
-        const { name } = request.params as { name: string };
-        const ctx = await createEngineContext(request);
-        const record = await entityService.create(ctx, name, request.body);
-        return reply.status(201).send(record);
-      } catch (error) {
-        const handled = handleEngineError(error);
-        return sendEngineError(reply, handled);
-      }
+      const { name } = request.params as { name: string };
+      const ctx = await createEngineContext(request);
+      const record = await entityService.create(ctx, name, request.body);
+      return reply.status(201).send(record);
     },
   );
 
@@ -239,15 +173,10 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
       },
     },
     async (request, reply) => {
-      try {
-        const { name, id } = request.params as { name: string; id: string };
-        const ctx = await createEngineContext(request);
-        const record = await entityService.update(ctx, name, id, request.body);
-        return reply.send(record);
-      } catch (error) {
-        const handled = handleEngineError(error);
-        return sendEngineError(reply, handled);
-      }
+      const { name, id } = request.params as { name: string; id: string };
+      const ctx = await createEngineContext(request);
+      const record = await entityService.update(ctx, name, id, request.body);
+      return reply.send(record);
     },
   );
 
@@ -266,15 +195,10 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
       },
     },
     async (request, reply) => {
-      try {
-        const { name, id } = request.params as { name: string; id: string };
-        const ctx = await createEngineContext(request);
-        const result = await entityService.delete(ctx, name, id);
-        return reply.send(result);
-      } catch (error) {
-        const handled = handleEngineError(error);
-        return sendEngineError(reply, handled);
-      }
+      const { name, id } = request.params as { name: string; id: string };
+      const ctx = await createEngineContext(request);
+      const result = await entityService.delete(ctx, name, id);
+      return reply.send(result);
     },
   );
 
@@ -295,25 +219,20 @@ export async function registerEntityRoutes(fastify: FastifyInstance): Promise<vo
       },
     },
     async (request, reply) => {
-      try {
-        const { name, id, action } = request.params as {
-          name: string;
-          id: string;
-          action: string;
-        };
-        const ctx = await createEngineContext(request);
-        const result = await entityService.runAction(
-          ctx,
-          name,
-          id,
-          action,
-          request.body,
-        );
-        return reply.send(result);
-      } catch (error) {
-        const handled = handleEngineError(error);
-        return sendEngineError(reply, handled);
-      }
+      const { name, id, action } = request.params as {
+        name: string;
+        id: string;
+        action: string;
+      };
+      const ctx = await createEngineContext(request);
+      const result = await entityService.runAction(
+        ctx,
+        name,
+        id,
+        action,
+        request.body,
+      );
+      return reply.send(result);
     },
   );
 }

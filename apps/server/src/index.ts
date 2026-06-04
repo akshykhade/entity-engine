@@ -5,6 +5,7 @@ import { env } from "@crud-engine/env/server";
 import fastifyCors from "@fastify/cors";
 import Fastify from "fastify";
 
+import { registerErrorHandler } from "./error-handler";
 import { registerOpenApi } from "./openapi";
 import { registerEntityRoutes } from "./routes/entity";
 import { registerPermissionRoutes } from "./routes/permissions";
@@ -26,6 +27,7 @@ async function start() {
   bootstrapDomains(defaultRegistries);
   await ensurePublicRole();
   await fastify.register(fastifyCors, baseCorsConfig);
+  registerErrorHandler(fastify);
   await registerOpenApi(fastify);
   await registerEntityRoutes(fastify);
   await registerRoleRoutes(fastify);
