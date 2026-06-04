@@ -160,6 +160,17 @@
         "typescript": "catalog:",
       },
     },
+    "tests": {
+      "name": "@crud-engine/tests",
+      "dependencies": {
+        "dotenv": "catalog:",
+      },
+      "devDependencies": {
+        "@crud-engine/config": "workspace:*",
+        "@types/bun": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
   },
   "catalog": {
     "@types/bun": "^1.3.4",
@@ -222,6 +233,8 @@
     "@crud-engine/permissions": ["@crud-engine/permissions@workspace:packages/permissions"],
 
     "@crud-engine/reports": ["@crud-engine/reports@workspace:packages/reports"],
+
+    "@crud-engine/tests": ["@crud-engine/tests@workspace:tests"],
 
     "@crud-engine/workflows": ["@crud-engine/workflows@workspace:packages/workflows"],
 
