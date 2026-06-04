@@ -9,6 +9,7 @@ import {
   type EntityMeta,
 } from "@crud-engine/entities";
 import { type PermissionRegistry, permissionRegistry } from "@crud-engine/permissions";
+import { type ReportRegistry, reportRegistry } from "@crud-engine/reports";
 import { type WorkflowRegistry, workflowRegistry } from "@crud-engine/workflows";
 import { eq } from "drizzle-orm";
 
@@ -17,7 +18,6 @@ import {
   logMutation,
   type AuditLogEntry,
 } from "./audit";
-import { getPrimaryKeyColumn } from "./columns";
 import { type ActionRegistry, actionRegistry } from "./define-action";
 import { badRequest, forbidden, notFound, type EngineContext } from "./errors";
 
@@ -26,6 +26,7 @@ export type EngineRegistries = {
   permissionRegistry: PermissionRegistry;
   workflowRegistry: WorkflowRegistry;
   actionRegistry: ActionRegistry;
+  reportRegistry: ReportRegistry;
 };
 import { toHookContext } from "./hooks";
 import {
@@ -270,7 +271,7 @@ export class EntityService {
       }
     }
 
-    const pkColumn = getPrimaryKeyColumn(entity);
+    const pkColumn = entity.getColumn(entity.primaryKey)!;
     const updateData = {
       ...data,
       updatedAt: new Date(),
@@ -314,7 +315,7 @@ export class EntityService {
     await this.assertPermission(ctx, entity.name, "delete");
 
     const before = await this.fetchRecord(entity, id);
-    const pkColumn = getPrimaryKeyColumn(entity);
+    const pkColumn = entity.getColumn(entity.primaryKey)!;
 
     if (isSoftDeleteEnabled(entity) && entity.softDeleteField) {
       const softDeletePayload: Record<string, unknown> = {
@@ -398,6 +399,7 @@ export const defaultRegistries: EngineRegistries = {
   permissionRegistry,
   workflowRegistry,
   actionRegistry,
+  reportRegistry,
 };
 
 export function createEntityService(

@@ -15,6 +15,7 @@
     "@crud-engine/entities": "workspace:*",
     "@crud-engine/auth": "workspace:*",
     "@crud-engine/permissions": "workspace:*",
+    "@crud-engine/reports": "workspace:*",
     "@crud-engine/workflows": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "zod": "catalog:"
