@@ -3,7 +3,7 @@ import type { EngineContext } from "./errors";
 export type ActionDefinition<T = unknown> = {
   entity: string;
   name: string;
-  handler: (ctx: EngineContext, id: string) => Promise<T>;
+  handler: (ctx: EngineContext, id: string, body: unknown) => Promise<T>;
 };
 
 class ActionRegistry {
@@ -24,6 +24,22 @@ class ActionRegistry {
       throw new Error(`Action "${name}" not found for entity "${entity}"`);
     }
     return action;
+  }
+
+  listForEntity(entity: string): string[] {
+    const names: string[] = [];
+
+    for (const action of this.actions.values()) {
+      if (action.entity === entity) {
+        names.push(action.name);
+      }
+    }
+
+    return names.sort();
+  }
+
+  listAll(): ActionDefinition[] {
+    return Array.from(this.actions.values());
   }
 }
 

@@ -3,6 +3,11 @@ export type { AuditLogEntry } from "./audit";
 export { defineAction, actionRegistry } from "./define-action";
 export type { ActionDefinition } from "./define-action";
 export {
+  listActionsForEntity,
+  listPermissionMatrix,
+  listPermissionsForUser,
+} from "./permission-matrix";
+export {
   createEntityService,
   EntityService,
   entityService,
