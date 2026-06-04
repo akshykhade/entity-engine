@@ -1,5 +1,4 @@
-export { defineWorkflow } from "./define-workflow";
-export { workflowRegistry } from "./registry";
+export { WorkflowRegistry, workflowRegistry } from "./registry";
 export type {
   WorkflowDefinition,
   WorkflowTransition,

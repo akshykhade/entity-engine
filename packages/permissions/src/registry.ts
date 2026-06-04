@@ -6,7 +6,7 @@ import type {
   PermissionMatrix,
 } from "./types";
 
-class PermissionRegistry {
+export class PermissionRegistry {
   private permissions = new Map<string, PermissionDefinition[]>();
   private grants: PermissionGrant[] = [];
 

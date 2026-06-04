@@ -3,7 +3,7 @@ import type {
   WorkflowValidationResult,
 } from "./types";
 
-class WorkflowRegistry {
+export class WorkflowRegistry {
   private workflows = new Map<string, WorkflowDefinition>();
 
   register(workflow: WorkflowDefinition): WorkflowDefinition {
