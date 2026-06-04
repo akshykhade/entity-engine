@@ -1,4 +1,4 @@
-import { listRoles } from "@crud-engine/roles";
+import { listRoles } from "@crud-engine/auth";
 import type { FastifyInstance } from "fastify";
 
 import { createEngineContext } from "../context";

@@ -24,7 +24,6 @@
         "@crud-engine/domains": "workspace:*",
         "@crud-engine/engine": "workspace:*",
         "@crud-engine/env": "workspace:*",
-        "@crud-engine/roles": "workspace:*",
         "@fastify/cors": "^11.0.1",
         "@fastify/swagger": "^9.7.0",
         "@fastify/swagger-ui": "^5.2.6",
@@ -47,6 +46,7 @@
         "@crud-engine/env": "workspace:*",
         "better-auth": "catalog:",
         "dotenv": "catalog:",
+        "drizzle-orm": "^0.45.1",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -92,10 +92,10 @@
     "packages/engine": {
       "name": "@crud-engine/engine",
       "dependencies": {
+        "@crud-engine/auth": "workspace:*",
         "@crud-engine/db": "workspace:*",
         "@crud-engine/entities": "workspace:*",
         "@crud-engine/permissions": "workspace:*",
-        "@crud-engine/roles": "workspace:*",
         "@crud-engine/workflows": "workspace:*",
         "drizzle-orm": "^0.45.1",
         "zod": "catalog:",
@@ -143,17 +143,6 @@
       "name": "@crud-engine/reports",
       "dependencies": {
         "@crud-engine/db": "workspace:*",
-      },
-      "devDependencies": {
-        "@crud-engine/config": "workspace:*",
-        "typescript": "catalog:",
-      },
-    },
-    "packages/roles": {
-      "name": "@crud-engine/roles",
-      "dependencies": {
-        "@crud-engine/db": "workspace:*",
-        "drizzle-orm": "^0.45.1",
       },
       "devDependencies": {
         "@crud-engine/config": "workspace:*",
@@ -232,8 +221,6 @@
     "@crud-engine/permissions": ["@crud-engine/permissions@workspace:packages/permissions"],
 
     "@crud-engine/reports": ["@crud-engine/reports@workspace:packages/reports"],
-
-    "@crud-engine/roles": ["@crud-engine/roles@workspace:packages/roles"],
 
     "@crud-engine/workflows": ["@crud-engine/workflows@workspace:packages/workflows"],
 

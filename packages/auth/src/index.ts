@@ -31,3 +31,12 @@ export function createAuth() {
 }
 
 export const auth = createAuth();
+
+export {
+  PUBLIC_ROLE,
+  anonymousRoleNames,
+  ensurePublicRole,
+  getRoleNamesForUser,
+  listRoles,
+} from "./roles";
+export type { RoleRecord } from "./roles";

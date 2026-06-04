@@ -1,6 +1,9 @@
-import { auth } from "@crud-engine/auth";
+import {
+  anonymousRoleNames,
+  auth,
+  getRoleNamesForUser,
+} from "@crud-engine/auth";
 import type { EngineContext } from "@crud-engine/engine";
-import { anonymousRoleNames, getRoleNamesForUser } from "@crud-engine/roles";
 import type { FastifyRequest } from "fastify";
 
 function requestHeaders(request: FastifyRequest): Headers {
