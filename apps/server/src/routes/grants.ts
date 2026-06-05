@@ -20,9 +20,10 @@ async function requireAdminHook(
 export async function registerGrantRoutes(
   fastify: FastifyInstance,
 ): Promise<void> {
-  fastify.addHook("preHandler", requireAdminHook);
+  await fastify.register(async (grantRoutes) => {
+    grantRoutes.addHook("preHandler", requireAdminHook);
 
-  fastify.get(
+    grantRoutes.get(
     "/api/grants",
     {
       schema: {
@@ -57,7 +58,7 @@ export async function registerGrantRoutes(
     },
   );
 
-  fastify.put(
+    grantRoutes.put(
     "/api/grants/:roleId/:entity/:action",
     {
       schema: {
@@ -117,7 +118,7 @@ export async function registerGrantRoutes(
     },
   );
 
-  fastify.delete(
+    grantRoutes.delete(
     "/api/grants/:roleId/:entity/:action",
     {
       schema: {
@@ -168,4 +169,5 @@ export async function registerGrantRoutes(
       return reply.send({ success: true });
     },
   );
+  });
 }
