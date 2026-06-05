@@ -1,5 +1,7 @@
 export { listAuditLogForRecord, logMutation } from "./audit";
 export type { AuditLogEntry } from "./audit";
+export { grantStore } from "./grant-store";
+export type { LoadedGrant } from "./grant-store";
 export { actionRegistry } from "./define-action";
 export type { ActionDefinition } from "./define-action";
 export {

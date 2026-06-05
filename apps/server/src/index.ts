@@ -1,6 +1,7 @@
-import { auth, ensurePublicRole } from "@crud-engine/auth";
+import { auth } from "@crud-engine/auth";
 import { bootstrapDomains } from "@crud-engine/domains";
-import { defaultRegistries } from "@crud-engine/engine";
+import { defaultRegistries, grantStore } from "@crud-engine/engine";
+import { permissionRegistry } from "@crud-engine/permissions";
 import { env } from "@crud-engine/env/server";
 import fastifyCors from "@fastify/cors";
 import Fastify from "fastify";
@@ -8,6 +9,7 @@ import Fastify from "fastify";
 import { registerErrorHandler } from "./error-handler";
 import { registerOpenApi } from "./openapi";
 import { registerEntityRoutes } from "./routes/entity";
+import { registerGrantRoutes } from "./routes/grants";
 import { registerPermissionRoutes } from "./routes/permissions";
 import { registerRoleRoutes } from "./routes/roles";
 
@@ -25,13 +27,17 @@ const fastify = Fastify({
 
 async function start() {
   bootstrapDomains(defaultRegistries);
-  await ensurePublicRole();
+  await grantStore.load();
+  permissionRegistry.setGrantChecker((roles, entity, action) =>
+    grantStore.check(roles, entity, action),
+  );
   await fastify.register(fastifyCors, baseCorsConfig);
   registerErrorHandler(fastify);
   await registerOpenApi(fastify);
   await registerEntityRoutes(fastify);
   await registerRoleRoutes(fastify);
   await registerPermissionRoutes(fastify);
+  await registerGrantRoutes(fastify);
 
   fastify.route({
     method: ["GET", "POST"],
@@ -61,6 +67,21 @@ async function start() {
       }
     },
   });
+
+  if (process.env.NODE_ENV === "test") {
+    const dbModule = await import("@crud-engine/db");
+    const roleSchema = await import("@crud-engine/db/schema/role");
+
+    fastify.post("/api/test/assign-role", async (request, reply) => {
+      const { userId, roleId } = request.body as { userId: string; roleId: string };
+      const db = dbModule.createDb();
+      await db
+        .insert(roleSchema.userRoles)
+        .values({ id: crypto.randomUUID(), userId, roleId })
+        .onConflictDoNothing();
+      return reply.send({ success: true });
+    });
+  }
 
   fastify.get(
     "/",

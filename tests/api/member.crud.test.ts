@@ -1,8 +1,65 @@
-import { describe, expect, test } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 
 import { apiFetch } from "../helpers";
 
 describe("Member API", () => {
+  let adminCookies = "";
+  let publicRoleId = "";
+
+  beforeAll(async () => {
+    // Get role IDs
+    const rolesRes = await apiFetch("/api/roles");
+    const rolesBody = (await rolesRes.json()) as { roles: { id: string; name: string }[] };
+    const adminRole = rolesBody.roles.find((r) => r.name === "admin");
+    const publicRole = rolesBody.roles.find((r) => r.name === "public");
+    publicRoleId = publicRole!.id;
+
+    // Sign up admin user
+    const email = "admin-member@test.local";
+    const password = "AdminPass123!";
+    await apiFetch("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Admin Member", email, password }),
+    });
+
+    // Get the user id by signing in
+    const signInRes = await apiFetch("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const signInBody = (await signInRes.json()) as { user: { id: string } };
+    const userId = signInBody.user.id;
+    const setCookie = signInRes.headers.get("set-cookie") ?? "";
+    adminCookies = setCookie;
+
+    // Assign admin role
+    await apiFetch("/api/test/assign-role", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, roleId: adminRole!.id }),
+    });
+
+    // Sign in again to get session with admin role
+    const signInRes2 = await apiFetch("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const setCookie2 = signInRes2.headers.get("set-cookie") ?? "";
+    adminCookies = setCookie2;
+
+    // Add grants for public role: Member CRUD + read
+    for (const action of ["read", "create", "update", "delete"]) {
+      await apiFetch(`/api/grants/${publicRoleId}/Member/${action}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Cookie: adminCookies },
+        body: JSON.stringify({ allowed: true }),
+      });
+    }
+  });
+
   test("GET /api/entities includes Member", async () => {
     const res = await apiFetch("/api/entities");
     expect(res.status).toBe(200);
