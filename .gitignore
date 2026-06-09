@@ -53,3 +53,4 @@ local.db
 tests/.data/
 
 docs/
+apps/admin/src/components/devl/

@@ -30,6 +30,7 @@
     "build": "turbo build",
     "check-types": "turbo check-types",
     "dev:server": "turbo -F server dev",
+    "dev:admin": "turbo -F admin dev",
     "db:push": "turbo -F @crud-engine/db db:push",
     "db:studio": "turbo -F @crud-engine/db db:studio",
     "db:generate": "turbo -F @crud-engine/db db:generate",
