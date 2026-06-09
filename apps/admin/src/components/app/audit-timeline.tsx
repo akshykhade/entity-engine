@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { getUser } from "@/lib/mock/users";
+import { useUsers } from "@/lib/hooks/use-users";
 import type { AuditAction, AuditLogEntry } from "@/lib/types/entity";
 
 const ACTION_CONFIG: Record<
@@ -54,6 +54,9 @@ function formatDiff(before: string | null, after: string | null): string | null 
 }
 
 export function AuditTimeline({ entries }: AuditTimelineProps) {
+  const { data: usersData } = useUsers();
+  const actorMap = new Map((usersData?.users ?? []).map((user) => [user.id, user]));
+
   if (entries.length === 0) {
     return (
       <p className="text-muted-foreground text-sm">No audit history for this record yet.</p>
@@ -64,7 +67,7 @@ export function AuditTimeline({ entries }: AuditTimelineProps) {
     <ol className="relative flex flex-col gap-0">
       {entries.map((entry, i) => {
         const config = ACTION_CONFIG[entry.action];
-        const actor = getUser(entry.actorId);
+        const actor = actorMap.get(entry.actorId);
         const diff = formatDiff(entry.before, entry.after);
         const isLast = i === entries.length - 1;
 

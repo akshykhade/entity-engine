@@ -8,7 +8,8 @@ import {
   MenuPopup,
   MenuTrigger,
 } from "@/components/ui/menu";
-import { getActionLabel, getCustomActionsForEntity, runMockEntityAction } from "@/lib/mock/actions";
+import { ApiError } from "@/lib/api/client";
+import { useRunEntityAction } from "@/lib/hooks/use-entities";
 import { toast } from "@/lib/toast";
 import type { EntityMeta } from "@/lib/types/entity";
 
@@ -17,15 +18,27 @@ type EntityEditActionsProps = {
   recordId: string;
 };
 
+function formatActionLabel(action: string): string {
+  return action.charAt(0).toUpperCase() + action.slice(1);
+}
+
 export function EntityEditActions({ entity, recordId }: EntityEditActionsProps) {
-  const customActions = getCustomActionsForEntity(entity.slug);
+  const customActions = entity.actions ?? [];
+  const actionMutation = useRunEntityAction(entity.slug);
 
   if (customActions.length === 0) {
     return null;
   }
 
-  function handleAction(action: string) {
-    toast.info(runMockEntityAction(entity.slug, action, recordId));
+  async function handleAction(action: string) {
+    try {
+      const result = await actionMutation.mutateAsync({ id: recordId, action });
+      toast.success(typeof result === "string" ? result : `${action} completed`);
+    } catch (error) {
+      toast.error("Action failed", {
+        description: error instanceof ApiError ? error.message : undefined,
+      });
+    }
   }
 
   return (
@@ -36,9 +49,9 @@ export function EntityEditActions({ entity, recordId }: EntityEditActionsProps) 
       </MenuTrigger>
       <MenuPopup align="end">
         {customActions.map((action) => (
-          <MenuItem key={action.name} onClick={() => handleAction(action.name)}>
+          <MenuItem key={action} onClick={() => handleAction(action)}>
             <RadioIcon />
-            {getActionLabel(entity.slug, action.name)}
+            {formatActionLabel(action)}
           </MenuItem>
         ))}
       </MenuPopup>

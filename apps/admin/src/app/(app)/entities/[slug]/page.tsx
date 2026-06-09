@@ -7,8 +7,7 @@ import { use } from "react";
 import { EntityTable } from "@/components/app/entity-table";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
-import { getEntityMeta, isKnownEntitySlug } from "@/lib/mock/entities";
-import { countRecords } from "@/lib/mock/records";
+import { useEntityMeta, useEntityRecords } from "@/lib/hooks/use-entities";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -16,28 +15,33 @@ type PageProps = {
 
 export default function EntityListPage({ params }: PageProps) {
   const { slug } = use(params);
+  const { data: entity, isLoading, isError } = useEntityMeta(slug);
+  const { data: records } = useEntityRecords(slug, { page: 1, pageSize: 1 });
 
-  if (!isKnownEntitySlug(slug)) {
+  if (!isLoading && (isError || !entity)) {
     notFound();
   }
 
-  const entity = getEntityMeta(slug)!;
-  const recordCount = countRecords(slug);
+  const recordCount = records?.total ?? 0;
 
   return (
     <div className="px-6 py-10">
       <div className="mx-auto">
         <PageHeader
-          title={entity.name}
-          description={`${recordCount} record${recordCount === 1 ? "" : "s"}`}
+          title={entity?.name ?? "…"}
+          description={
+            isLoading ? "Loading…" : `${recordCount} record${recordCount === 1 ? "" : "s"}`
+          }
           action={
-            <Button size="sm" render={<Link href={`/entities/${slug}/new`} />}>
-              <PlusIcon />
-              New record
-            </Button>
+            entity ? (
+              <Button size="sm" render={<Link href={`/entities/${slug}/new`} />}>
+                <PlusIcon />
+                New record
+              </Button>
+            ) : null
           }
         />
-        <EntityTable entity={entity} />
+        {entity ? <EntityTable entity={entity} /> : null}
       </div>
     </div>
   );

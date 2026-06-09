@@ -1,8 +1,11 @@
+"use client";
+
 import { ArrowRightIcon, DatabaseIcon } from "lucide-react";
 import Link from "next/link";
+import { useEntityRecords } from "@/lib/hooks/use-entities";
 import type { EntityMeta } from "@/lib/types/entity";
 
-const ENTITY_COLORS= [
+const ENTITY_COLORS = [
   "from-emerald-400/40 to-teal-600/30",
   "from-amber-300/40 to-orange-500/30",
   "from-indigo-400/40 to-violet-600/30",
@@ -11,15 +14,16 @@ const ENTITY_COLORS= [
   "from-fuchsia-400/40 to-purple-600/30",
   "from-yellow-300/40 to-amber-500/30",
   "from-lime-400/40 to-green-600/30",
-]
+];
 
 type EntityCardProps = {
   entity: EntityMeta;
-  recordCount: number;
   index: number;
 };
 
-export function EntityCard({ entity, recordCount, index }: EntityCardProps) {
+export function EntityCard({ entity, index }: EntityCardProps) {
+  const { data } = useEntityRecords(entity.slug, { page: 1, pageSize: 1 });
+  const recordCount = data?.total ?? 0;
   const fieldCount = Object.keys(entity.fields).length;
   const gradient = ENTITY_COLORS[index % ENTITY_COLORS.length] ?? "from-zinc-400/40 to-zinc-700/30";
 

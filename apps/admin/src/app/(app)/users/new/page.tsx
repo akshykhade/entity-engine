@@ -4,11 +4,13 @@ import { useRouter } from "next/navigation";
 import { Breadcrumbs } from "@/components/app/breadcrumbs";
 import { PageHeader } from "@/components/app/page-header";
 import { UserForm } from "@/components/app/user-form";
-import { createUser } from "@/lib/mock/users";
+import { ApiError } from "@/lib/api/client";
+import { useCreateUser } from "@/lib/hooks/use-users";
 import { toast } from "@/lib/toast";
 
 export default function UserNewPage() {
   const router = useRouter();
+  const createMutation = useCreateUser();
 
   return (
     <div className="px-10 py-10">
@@ -22,20 +24,21 @@ export default function UserNewPage() {
         <PageHeader
           label="User management"
           title="New user"
-          description="Create an account and assign a role. New users default to invited status."
+          description="Create an account and assign a role. A temporary password is generated if none is set."
         />
         <UserForm
           submitLabel="Create user"
           onCancel={() => router.push("/users")}
-          onSubmit={(data) => {
-            const user = createUser(data);
-            toast.success("User created", {
-              description:
-                data.status === "invited"
-                  ? "An invite email would be sent in production."
-                  : undefined,
-            });
-            router.push(`/users/${user.id}`);
+          onSubmit={async (data) => {
+            try {
+              const user = await createMutation.mutateAsync(data);
+              toast.success("User created");
+              router.push(`/users/${user.id}`);
+            } catch (error) {
+              toast.error("Create failed", {
+                description: error instanceof ApiError ? error.message : undefined,
+              });
+            }
           }}
         />
       </div>

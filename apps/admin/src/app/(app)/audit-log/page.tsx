@@ -4,13 +4,9 @@ import { ShieldIcon } from "lucide-react";
 import { useState } from "react";
 import { AuditLogTable } from "@/components/app/audit-log-table";
 import { PageHeader } from "@/components/app/page-header";
-import { listAuditLog } from "@/lib/mock/audit-log";
 
 export default function AuditLogPage() {
-  const total = listAuditLog({ dateRange: "all" }).length;
-  const [description, setDescription] = useState(
-    `Showing 1–${Math.min(20, total)} of ${total} · mock data`,
-  );
+  const [description, setDescription] = useState("Loading audit log…");
 
   return (
     <div className="px-6 py-10">

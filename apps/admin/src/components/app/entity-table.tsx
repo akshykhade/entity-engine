@@ -27,8 +27,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { runMockEntityAction } from "@/lib/mock/actions";
-import { deleteRecord, listRecords } from "@/lib/mock/records";
+import {
+  useDeleteEntityRecord,
+  useEntityRecords,
+  useRunEntityAction,
+} from "@/lib/hooks/use-entities";
+import { ApiError } from "@/lib/api/client";
 import type { EntityMeta } from "@/lib/types/entity";
 
 type EntityTableProps = {
@@ -88,6 +92,11 @@ function getVisiblePages(current: number, total: number): number[] {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 }
 
+function getDefaultSortField(entity: EntityMeta): string {
+  const sortable = Object.entries(entity.fields).find(([, field]) => field.sortable);
+  return sortable?.[0] ?? Object.keys(entity.fields)[0] ?? "id";
+}
+
 function isInteractiveClickTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return Boolean(
@@ -101,25 +110,29 @@ export function EntityTable({ entity }: EntityTableProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Record<string, string>>({});
-  const [sortField, setSortField] = useState("createdAt");
+  const [sortField, setSortField] = useState(() => getDefaultSortField(entity));
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-  const [, setTableVersion] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [page, setPage] = useState(1);
 
-  const records = listRecords(entity.slug, {
+  const { data, isLoading, isError, refetch } = useEntityRecords(entity.slug, {
     search,
     filters,
     sort: { field: sortField, direction: sortDirection },
+    page,
+    pageSize: PAGE_SIZE,
   });
+  const deleteMutation = useDeleteEntityRecord(entity.slug);
+  const actionMutation = useRunEntityAction(entity.slug);
 
-  const totalCount = records.length;
+  const records = data?.data ?? [];
+  const totalCount = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const start = totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const end = Math.min(page * PAGE_SIZE, totalCount);
-  const paginatedRecords = records.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginatedRecords = records;
   const visiblePages = getVisiblePages(page, totalPages);
   const firstVisiblePage = visiblePages[0] ?? 1;
   const lastVisiblePage = visiblePages[visiblePages.length - 1] ?? totalPages;
@@ -176,32 +189,46 @@ export function EntityTable({ entity }: EntityTableProps) {
     setSelectedIds(new Set());
   }
 
-  function handleDelete(id: string) {
-    deleteRecord(entity.slug, id);
-    setSelectedIds((prev) => {
-      if (!prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-    toast.success("Record deleted");
-    setTableVersion((k) => k + 1);
-  }
-
-  function handleBulkDelete() {
-    const count = selectedFilteredIds.length;
-    for (const id of selectedFilteredIds) {
-      deleteRecord(entity.slug, id);
+  async function handleDelete(id: string) {
+    try {
+      await deleteMutation.mutateAsync(id);
+      setSelectedIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      toast.success("Record deleted");
+    } catch (error) {
+      toast.error("Delete failed", {
+        description: error instanceof ApiError ? error.message : undefined,
+      });
     }
-    clearSelection();
-    toast.success(
-      count === 1 ? "Record deleted" : `${count} records deleted`,
-    );
-    setTableVersion((k) => k + 1);
   }
 
-  function handleCustomAction(action: string, recordId: string) {
-    toast.info(runMockEntityAction(entity.slug, action, recordId));
+  async function handleBulkDelete() {
+    const count = selectedFilteredIds.length;
+    try {
+      await Promise.all(selectedFilteredIds.map((id) => deleteMutation.mutateAsync(id)));
+      clearSelection();
+      toast.success(count === 1 ? "Record deleted" : `${count} records deleted`);
+    } catch (error) {
+      toast.error("Delete failed", {
+        description: error instanceof ApiError ? error.message : undefined,
+      });
+      void refetch();
+    }
+  }
+
+  async function handleCustomAction(action: string, recordId: string) {
+    try {
+      const result = await actionMutation.mutateAsync({ id: recordId, action });
+      toast.success(typeof result === "string" ? result : `${action} completed`);
+    } catch (error) {
+      toast.error("Action failed", {
+        description: error instanceof ApiError ? error.message : undefined,
+      });
+    }
   }
 
   return (
@@ -248,7 +275,18 @@ export function EntityTable({ entity }: EntityTableProps) {
           </div>
         ) : null}
 
-        {records.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center px-6 py-16 text-muted-foreground text-sm">
+            Loading records…
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col justify-center items-center px-6 py-16 text-center">
+            <p className="font-heading text-base">Failed to load records</p>
+            <Button size="sm" variant="outline" className="mt-3" onClick={() => refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : records.length === 0 ? (
           <div className="flex flex-col justify-center items-center px-6 py-16 text-center">
             <p className="font-heading text-base">No records found</p>
             <p className="mt-1 max-w-sm text-muted-foreground text-sm">

@@ -33,23 +33,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getEntityCatalog } from "@/lib/mock/entities";
-import { listAuditLog } from "@/lib/mock/audit-log";
-import { getUser, listUsers } from "@/lib/mock/users";
-import type { AuditAction, ListAuditLogOptions } from "@/lib/types/entity";
+import { useAuditLog } from "@/lib/hooks/use-audit-log";
+import { useEntityCatalog } from "@/lib/hooks/use-entities";
+import { useUsers } from "@/lib/hooks/use-users";
+import type { AuditAction } from "@/lib/types/entity";
 
 const ACTIONS: { label: string; value: string }[] = [
   { label: "All actions", value: "all" },
   { label: "Create", value: "create" },
   { label: "Update", value: "update" },
   { label: "Delete", value: "delete" },
-];
-
-const DATE_RANGES: { label: string; value: ListAuditLogOptions["dateRange"] }[] = [
-  { label: "Last 24h", value: "24h" },
-  { label: "Last 7 days", value: "7d" },
-  { label: "Last 30 days", value: "30d" },
-  { label: "All time", value: "all" },
 ];
 
 const PAGE_SIZE = 10;
@@ -92,45 +85,46 @@ type AuditLogTableProps = {
 };
 
 export function AuditLogTable({ onSummaryChange }: AuditLogTableProps = {}) {
-  const users = listUsers();
-  const entities = getEntityCatalog();
+  const { data: usersData } = useUsers();
+  const users = usersData?.users ?? [];
+  const { data: entities = [] } = useEntityCatalog();
 
   const [entity, setEntity] = useState("all");
   const [actorId, setActorId] = useState("all");
   const [action, setAction] = useState("all");
-  const [dateRange, setDateRange] = useState<ListAuditLogOptions["dateRange"]>("all");
   const [page, setPage] = useState(1);
 
-  const entries = useMemo(
-    () =>
-      listAuditLog({
-        entity: entity === "all" ? undefined : entity,
-        actorId: actorId === "all" ? undefined : actorId,
-        action: action === "all" ? undefined : (action as AuditAction),
-        dateRange,
-      }),
-    [entity, actorId, action, dateRange],
-  );
+  const selectedEntityName =
+    entity === "all" ? undefined : entities.find((e) => e.slug === entity)?.name ?? entity;
 
-  const totalCount = entries.length;
+  const { data, isLoading, isError, refetch } = useAuditLog({
+    entity: selectedEntityName,
+    actorId: actorId === "all" ? undefined : actorId,
+    action: action === "all" ? undefined : (action as AuditAction),
+    page,
+    pageSize: PAGE_SIZE,
+  });
+
+  const entries = data?.entries ?? [];
+  const totalCount = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const start = totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const end = Math.min(page * PAGE_SIZE, totalCount);
-  const paginatedEntries = entries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginatedEntries = entries;
   const visiblePages = getVisiblePages(page, totalPages);
   const firstVisiblePage = visiblePages[0] ?? 1;
   const lastVisiblePage = visiblePages[visiblePages.length - 1] ?? totalPages;
 
   useEffect(() => {
     setPage(1);
-  }, [entity, actorId, action, dateRange]);
+  }, [entity, actorId, action]);
 
   useEffect(() => {
     if (!onSummaryChange) return;
     onSummaryChange(
       totalCount === 0
-        ? "No entries · mock data"
-        : `Showing ${start}–${end} of ${totalCount} · mock data`,
+        ? "No entries"
+        : `Showing ${start}–${end} of ${totalCount}`,
     );
   }, [onSummaryChange, start, end, totalCount]);
 
@@ -142,16 +136,17 @@ export function AuditLogTable({ onSummaryChange }: AuditLogTableProps = {}) {
       ? { label: "User", value: users.find((u) => u.id === actorId)?.name ?? actorId }
       : null,
     action !== "all" ? { label: "Action", value: action } : null,
-    dateRange !== "all"
-      ? { label: "When", value: DATE_RANGES.find((d) => d.value === dateRange)?.label ?? dateRange }
-      : null,
   ].filter(Boolean) as { label: string; value: string }[];
+
+  const actorMap = useMemo(
+    () => new Map(users.map((user) => [user.id, user])),
+    [users],
+  );
 
   function clearAll() {
     setEntity("all");
     setActorId("all");
     setAction("all");
-    setDateRange("all");
   }
 
   return (
@@ -208,21 +203,6 @@ export function AuditLogTable({ onSummaryChange }: AuditLogTableProps = {}) {
             </Select>
           </div>
 
-          <div className="gap-2 grid">
-            <Label htmlFor="audit-filter-date-range">Date range</Label>
-            <Select value={dateRange ?? "all"} onValueChange={(v) => setDateRange(v as ListAuditLogOptions["dateRange"])}>
-              <SelectTrigger id="audit-filter-date-range" className="w-36">
-                <SelectValue placeholder="All time" />
-              </SelectTrigger>
-              <SelectPopup>
-                {DATE_RANGES.map((d) => (
-                  <SelectItem key={d.value} value={d.value ?? "all"}>
-                    {d.label}
-                  </SelectItem>
-                ))}
-              </SelectPopup>
-            </Select>
-          </div>
         </div>
 
         {activeChips.length > 0 ? (
@@ -262,7 +242,22 @@ export function AuditLogTable({ onSummaryChange }: AuditLogTableProps = {}) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {entries.length === 0 ? (
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={6} className="py-12 text-muted-foreground text-center">
+                Loading audit log…
+              </TableCell>
+            </TableRow>
+          ) : isError ? (
+            <TableRow>
+              <TableCell colSpan={6} className="py-12 text-center">
+                <p className="text-muted-foreground">Failed to load audit log.</p>
+                <Button size="sm" variant="outline" className="mt-3" onClick={() => refetch()}>
+                  Retry
+                </Button>
+              </TableCell>
+            </TableRow>
+          ) : entries.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} className="py-12 text-muted-foreground text-center">
                 No audit entries match your filters.
@@ -270,8 +265,10 @@ export function AuditLogTable({ onSummaryChange }: AuditLogTableProps = {}) {
             </TableRow>
           ) : (
             paginatedEntries.map((entry) => {
-              const actor = getUser(entry.actorId);
-              const entityMeta = entities.find((e) => e.slug === entry.entity);
+              const actor = actorMap.get(entry.actorId);
+              const entityMeta = entities.find(
+                (e) => e.slug === entry.entity || e.name === entry.entity,
+              );
               return (
                 <TableRow key={entry.id}>
                   <TableCell className="ps-4 font-mono tabular-nums text-xs">

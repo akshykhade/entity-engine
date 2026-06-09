@@ -8,37 +8,26 @@ import {
   TabsPanel,
   TabsTab,
 } from "@/components/ui/tabs";
-import {
-  listAccessLogForUser,
-  listSessionsForUser,
-} from "@/lib/mock/users";
+import { useUserSessions } from "@/lib/hooks/use-users";
 
 type UserActivityTabsProps = {
   userId: string;
   refreshKey?: number;
 };
 
-export function UserActivityTabs({ userId, refreshKey = 0 }: UserActivityTabsProps) {
-  const accessCount = listAccessLogForUser(userId).length;
-  const sessionCount = listSessionsForUser(userId).length;
+export function UserActivityTabs({ userId }: UserActivityTabsProps) {
+  const { data: sessions = [] } = useUserSessions(userId);
 
   return (
     <section className="mt-10 pt-8 border-border/60 border-t">
-      <Tabs defaultValue="access">
-        <TabsList variant="underline" >
-          <TabsTab value="access">
-            Access log
-            {accessCount > 0 ? (
-              <span className="font-mono tabular-nums text-[10px] text-muted-foreground">
-                {accessCount}
-              </span>
-            ) : null}
-          </TabsTab>
+      <Tabs defaultValue="sessions">
+        <TabsList variant="underline">
+          <TabsTab value="access">Access log</TabsTab>
           <TabsTab value="sessions">
             Sessions
-            {sessionCount > 0 ? (
+            {sessions.length > 0 ? (
               <span className="font-mono tabular-nums text-[10px] text-muted-foreground">
-                {sessionCount}
+                {sessions.length}
               </span>
             ) : null}
           </TabsTab>
@@ -46,24 +35,13 @@ export function UserActivityTabs({ userId, refreshKey = 0 }: UserActivityTabsPro
 
         <TabsPanel value="access" className="mt-6">
           <p className="mb-4 text-muted-foreground text-sm">
-            Recent sign-in activity for this user.
+            Access log integration is planned for a later phase.
           </p>
-          <UserAccessLogSection
-            key={`access-${refreshKey}`}
-            userId={userId}
-            embedded
-          />
+          <UserAccessLogSection userId={userId} embedded />
         </TabsPanel>
 
         <TabsPanel value="sessions" className="mt-6">
-          <p className="mb-4 text-muted-foreground text-sm">
-            Active and recent sign-in sessions for this user.
-          </p>
-          <UserSessionLogSection
-            key={`sessions-${refreshKey}`}
-            userId={userId}
-            embedded
-          />
+          <UserSessionLogSection userId={userId} embedded />
         </TabsPanel>
       </Tabs>
     </section>

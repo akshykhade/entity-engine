@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { QueryProvider } from "@/providers/query-provider";
 import { cn } from "@/lib/utils";
 
 const inter = Inter({
@@ -16,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "CRUD Admin",
-  description: "Mock CRUD admin for members, invoices, and customers",
+  description: "CRUD admin for entity and user management",
 };
 
 export default function RootLayout({
@@ -33,7 +34,9 @@ export default function RootLayout({
         jetbrainsMono.variable,
       )}
     >
-      <body className="flex flex-col h-full">{children}</body>
+      <body className="flex flex-col h-full">
+        <QueryProvider>{children}</QueryProvider>
+      </body>
     </html>
   );
 }

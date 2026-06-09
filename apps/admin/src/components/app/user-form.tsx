@@ -11,11 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getRoles } from "@/lib/mock/permissions";
-import { isEmailTaken } from "@/lib/mock/users";
+import { roleSelectItems } from "@/lib/api/roles";
+import { useRoles } from "@/lib/hooks/use-roles";
+import { checkEmailTaken } from "@/lib/api/users";
 import type { AdminUser, UserFormData, UserStatus } from "@/lib/types/entity";
-
-const ROLES = getRoles();
 
 const STATUSES: { label: string; value: UserStatus }[] = [
   { label: "Active", value: "active" },
@@ -25,17 +24,17 @@ const STATUSES: { label: string; value: UserStatus }[] = [
 
 type UserFormProps = {
   user?: AdminUser;
-  onSubmit: (data: UserFormData) => void;
+  onSubmit: (data: UserFormData) => void | Promise<void>;
   onCancel: () => void;
   submitLabel?: string;
 };
 
-function getInitialValues(user?: AdminUser): UserFormData {
+function getInitialValues(user: AdminUser | undefined, defaultRoleId: string): UserFormData {
   return {
     name: user?.name ?? "",
     email: user?.email ?? "",
     phone: user?.phone ?? "",
-    roleId: user?.roleId ?? "viewer",
+    roleId: user?.roleId ?? defaultRoleId,
     status: user?.status ?? "invited",
   };
 }
@@ -46,10 +45,14 @@ export function UserForm({
   onCancel,
   submitLabel = "Save",
 }: UserFormProps) {
-  const [values, setValues] = useState(() => getInitialValues(user));
+  const { data: roles = [] } = useRoles();
+  const roleItems = roleSelectItems(roles);
+  const defaultRoleId = roles.find((r) => r.name === "public")?.id ?? roles[0]?.id ?? "";
+  const [values, setValues] = useState(() => getInitialValues(user, defaultRoleId));
   const [errors, setErrors] = useState<Partial<Record<keyof UserFormData, string>>>({});
+  const [submitting, setSubmitting] = useState(false);
 
-  function validate(): boolean {
+  async function validate(): Promise<boolean> {
     const next: Partial<Record<keyof UserFormData, string>> = {};
 
     if (!values.name.trim()) {
@@ -60,8 +63,13 @@ export function UserForm({
       next.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
       next.email = "Enter a valid email address";
-    } else if (isEmailTaken(values.email, user?.id)) {
-      next.email = "This email is already in use";
+    } else {
+      try {
+        const taken = await checkEmailTaken(values.email, user?.id);
+        if (taken) next.email = "This email is already in use";
+      } catch {
+        // ignore check failures during validation
+      }
     }
 
     if (!values.roleId) {
@@ -72,131 +80,102 @@ export function UserForm({
     return Object.keys(next).length === 0;
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!validate()) return;
-    onSubmit(values);
-  }
-
-  function updateField<K extends keyof UserFormData>(name: K, value: UserFormData[K]) {
-    setValues((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
+    if (!(await validate())) return;
+    setSubmitting(true);
+    try {
+      await onSubmit(values);
+    } finally {
+      setSubmitting(false);
     }
   }
 
-  const isSuperAdmin = user?.roleId === "super-admin";
-
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="space-y-6">
-        <div className="grid gap-2">
-          <Label htmlFor="name">
-            Name <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="name"
-            value={values.name}
-            onChange={(e) => updateField("name", e.target.value)}
-            placeholder="Full name"
-            autoComplete="name"
-          />
-          {errors.name ? (
-            <p className="text-destructive text-xs">{errors.name}</p>
-          ) : null}
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="email">
-            Email <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            value={values.email}
-            onChange={(e) => updateField("email", e.target.value)}
-            placeholder="name@company.com"
-            autoComplete="email"
-          />
-          {errors.email ? (
-            <p className="text-destructive text-xs">{errors.email}</p>
-          ) : null}
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="phone">Phone</Label>
-          <Input
-            id="phone"
-            type="tel"
-            value={values.phone}
-            onChange={(e) => updateField("phone", e.target.value)}
-            placeholder="+1 555 0100"
-            autoComplete="tel"
-          />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="role">
-            Role <span className="text-destructive">*</span>
-          </Label>
-          {isSuperAdmin ? (
-            <>
-              <Input id="role" value="Super Admin" disabled />
-              <p className="text-muted-foreground text-xs">
-                Super Admin role cannot be changed.
-              </p>
-            </>
-          ) : (
-            <Select
-              value={values.roleId}
-              onValueChange={(v) => updateField("roleId", v ?? "viewer")}
-            >
-              <SelectTrigger id="role">
-                <SelectValue placeholder="Select role" />
-              </SelectTrigger>
-              <SelectPopup>
-                {ROLES.filter((role) => role.id !== "super-admin").map((role) => (
-                  <SelectItem key={role.id} value={role.id}>
-                    {role.name}
-                  </SelectItem>
-                ))}
-              </SelectPopup>
-            </Select>
-          )}
-          {errors.roleId ? (
-            <p className="text-destructive text-xs">{errors.roleId}</p>
-          ) : null}
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="status">Status</Label>
-          <Select
-            value={values.status}
-            onValueChange={(v) => updateField("status", (v as UserStatus) ?? "invited")}
-          >
-            <SelectTrigger id="status">
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectPopup>
-              {STATUSES.map((status) => (
-                <SelectItem key={status.value} value={status.value}>
-                  {status.label}
-                </SelectItem>
-              ))}
-            </SelectPopup>
-          </Select>
-        </div>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-8">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="name">Name</Label>
+        <Input
+          id="name"
+          value={values.name}
+          onChange={(e) => setValues((v) => ({ ...v, name: e.target.value }))}
+          aria-invalid={Boolean(errors.name)}
+        />
+        {errors.name ? <p className="text-destructive text-xs">{errors.name}</p> : null}
       </div>
 
-      <div className="sticky bottom-0 mt-8 flex items-center justify-end gap-2 border-t border-border/60 bg-background py-4">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          type="email"
+          value={values.email}
+          onChange={(e) => setValues((v) => ({ ...v, email: e.target.value }))}
+          aria-invalid={Boolean(errors.email)}
+        />
+        {errors.email ? <p className="text-destructive text-xs">{errors.email}</p> : null}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="phone">Phone</Label>
+        <Input
+          id="phone"
+          value={values.phone}
+          onChange={(e) => setValues((v) => ({ ...v, phone: e.target.value }))}
+          placeholder="Optional"
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Role</Label>
+        <Select
+          value={values.roleId}
+          onValueChange={(roleId) => setValues((v) => ({ ...v, roleId: roleId ?? "" }))}
+          items={roleItems}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select role" />
+          </SelectTrigger>
+          <SelectPopup>
+            {roles.map((role) => (
+              <SelectItem key={role.id} value={role.id}>
+                {role.label ?? role.name}
+              </SelectItem>
+            ))}
+          </SelectPopup>
+        </Select>
+        {errors.roleId ? <p className="text-destructive text-xs">{errors.roleId}</p> : null}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Status</Label>
+        <Select
+          value={values.status}
+          onValueChange={(status) =>
+            setValues((v) => ({ ...v, status: (status as UserStatus) ?? "invited" }))
+          }
+          items={STATUSES}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectPopup>
+            {STATUSES.map((status) => (
+              <SelectItem key={status.value} value={status.value}>
+                {status.label}
+              </SelectItem>
+            ))}
+          </SelectPopup>
+        </Select>
+      </div>
+
+      <div className="flex items-center gap-2 pt-2">
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : submitLabel}
+        </Button>
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit">{submitLabel}</Button>
       </div>
     </form>
   );

@@ -21,7 +21,7 @@ import {
     CommandShortcut,
 } from '@/components/ui/command'
 import { Kbd, KbdGroup } from '@/components/ui/kbd'
-import { getEntityCatalog } from '@/lib/mock/entities'
+import { useEntityCatalog } from '@/lib/hooks/use-entities'
 
 export interface PaletteItem {
     value: string
@@ -48,7 +48,7 @@ const commandItemClassName =
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     const router = useRouter()
-    const entities = getEntityCatalog()
+    const { data: entities = [] } = useEntityCatalog()
 
     const runCommand = useCallback(
         (action: () => void) => {

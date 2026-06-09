@@ -23,7 +23,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Kbd } from "@/components/ui/kbd";
-import { getEntityCatalog } from "@/lib/mock/entities";
+import { useEntityCatalog } from "@/lib/hooks/use-entities";
 
 const PRIMARY_NAV = [
   { href: "/", label: "Home", icon: HomeIcon },
@@ -78,7 +78,7 @@ function SidebarSection({ label }: { label: string }) {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const entities = getEntityCatalog();
+  const { data: entities = [] } = useEntityCatalog();
   const commandPalette = useCommandPalette();
 
   function isActive(href: string): boolean {

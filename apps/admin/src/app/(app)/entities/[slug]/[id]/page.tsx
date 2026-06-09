@@ -1,16 +1,19 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { notFound } from "next/navigation";
-import { use, useState } from "react";
-import { toast } from "@/lib/toast";
+import { notFound, useRouter } from "next/navigation";
+import { use } from "react";
 import { Breadcrumbs } from "@/components/app/breadcrumbs";
 import { EntityEditActions } from "@/components/app/entity-edit-actions";
 import { EntityForm } from "@/components/app/entity-form";
 import { PageHeader } from "@/components/app/page-header";
 import { RecordAuditSection } from "@/components/app/record-audit-section";
-import { getEntityMeta, isKnownEntitySlug } from "@/lib/mock/entities";
-import { getRecord, updateRecord } from "@/lib/mock/records";
+import { ApiError } from "@/lib/api/client";
+import {
+  useEntityMeta,
+  useEntityRecord,
+  useUpdateEntityRecord,
+} from "@/lib/hooks/use-entities";
+import { toast } from "@/lib/toast";
 
 type PageProps = {
   params: Promise<{ slug: string; id: string }>;
@@ -19,33 +22,16 @@ type PageProps = {
 export default function EntityEditPage({ params }: PageProps) {
   const { slug, id } = use(params);
   const router = useRouter();
-  const [refreshKey, setRefreshKey] = useState(0);
+  const { data: entity, isLoading: metaLoading, isError: metaError } = useEntityMeta(slug);
+  const { data: record, isLoading: recordLoading, isError: recordError } = useEntityRecord(slug, id);
+  const updateMutation = useUpdateEntityRecord(slug, id);
 
-  if (!isKnownEntitySlug(slug)) {
+  if (!metaLoading && (metaError || !entity)) {
     notFound();
   }
-
-  const entity = getEntityMeta(slug)!;
-  const record = getRecord(slug, id);
-
-  if (!record) {
+  if (!recordLoading && (recordError || !record)) {
     notFound();
   }
-
-  const displayName = String(
-    record.name ??
-      record.title ??
-      record.subject ??
-      record.memberCode ??
-      record.invoiceNumber ??
-      record.customerCode ??
-      record.orderNumber ??
-      record.ticketNumber ??
-      record.projectCode ??
-      record.sku ??
-      record.vendorCode ??
-      id,
-  );
 
   return (
     <div className="px-10 py-10">
@@ -53,27 +39,36 @@ export default function EntityEditPage({ params }: PageProps) {
         <Breadcrumbs
           items={[
             { label: "Entities", href: "/entities" },
-            { label: entity.name, href: `/entities/${slug}` },
-            { label: displayName },
+            { label: entity?.name ?? slug, href: `/entities/${slug}` },
+            { label: id },
           ]}
         />
         <PageHeader
-          title={`Edit ${entity.name}`}
-          description={displayName}
-          action={<EntityEditActions entity={entity} recordId={id} />}
+          title="Edit record"
+          description={entity ? `Update ${entity.name.toLowerCase()} fields.` : "Loading…"}
+          action={entity ? <EntityEditActions entity={entity} recordId={id} /> : null}
         />
-        <EntityForm
-          key={`${id}-${refreshKey}`}
-          entity={entity}
-          record={record}
-          onCancel={() => router.push(`/entities/${slug}`)}
-          onSubmit={(data) => {
-            updateRecord(slug, id, data);
-            toast.success(`${entity.name} saved`);
-            setRefreshKey((k) => k + 1);
-          }}
-        />
-        <RecordAuditSection key={refreshKey} entity={slug} recordId={id} />
+        {entity && record ? (
+          <>
+            <EntityForm
+              key={record.updatedAt.toString()}
+              entity={entity}
+              record={record}
+              onCancel={() => router.push(`/entities/${slug}`)}
+              onSubmit={async (data) => {
+                try {
+                  await updateMutation.mutateAsync(data);
+                  toast.success("Record saved");
+                } catch (error) {
+                  toast.error("Save failed", {
+                    description: error instanceof ApiError ? error.message : undefined,
+                  });
+                }
+              }}
+            />
+            <RecordAuditSection entity={slug} recordId={id} />
+          </>
+        ) : null}
       </div>
     </div>
   );

@@ -4,14 +4,15 @@ import { UsersIcon } from "lucide-react";
 import { useState } from "react";
 import { PageHeader } from "@/components/app/page-header";
 import { UsersTable } from "@/components/app/users-table";
-import { listAdminUsers } from "@/lib/mock/users";
-import { getRoles } from "@/lib/mock/permissions";
+import { useRoles } from "@/lib/hooks/use-roles";
+import { useUsers } from "@/lib/hooks/use-users";
 
 export default function UsersPage() {
-  const total = listAdminUsers().length;
-  const roles = getRoles();
+  const { data: usersData } = useUsers();
+  const { data: roles = [] } = useRoles();
+  const total = usersData?.total ?? 0;
   const [description, setDescription] = useState(
-    `Showing 1–${Math.min(10, total)} of ${total} · mock data`,
+    `Showing 1–${Math.min(10, total)} of ${total}`,
   );
 
   return (

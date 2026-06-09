@@ -10,6 +10,9 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@crud-engine/auth": "workspace:*",
+    "@crud-engine/db": "workspace:*",
+    "@crud-engine/env": "workspace:*",
     "@base-ui/react": "^1.5.0",
     "@phosphor-icons/react": "^2.1.10",
     "@tanstack/react-query": "^5.101.0",
@@ -19,6 +22,8 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.4.0",
+    "dotenv": "catalog:",
+    "drizzle-orm": "^0.45.1",
     "lucide-react": "^1.17.0",
     "next": "16.2.7",
     "next-themes": "^0.4.6",
@@ -34,6 +39,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@tanstack/react-query-devtools": "^5.101.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

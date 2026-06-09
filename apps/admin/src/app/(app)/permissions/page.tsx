@@ -3,12 +3,13 @@
 import { KeyRoundIcon } from "lucide-react";
 import { PermissionsMatrix } from "@/components/app/permissions-matrix";
 import { PageHeader } from "@/components/app/page-header";
-import { getPermissionGroups, getRoles } from "@/lib/mock/permissions";
+import { usePermissionMatrix } from "@/lib/hooks/use-permissions";
+import { useRoles } from "@/lib/hooks/use-roles";
 
 export default function PermissionsPage() {
-  const roles = getRoles();
-  const groups = getPermissionGroups();
-  const entityCount = groups.length;
+  const { data: roles = [] } = useRoles();
+  const { data: matrix } = usePermissionMatrix();
+  const entityCount = matrix?.entities.length ?? 0;
 
   return (
     <div className="px-6 py-10">
@@ -21,7 +22,7 @@ export default function PermissionsPage() {
               Permissions
             </span>
           }
-          description={`${roles.length} roles · ${entityCount} entities · select a role to view its CRUD matrix · mock data`}
+          description={`${roles.length} roles · ${entityCount} entities · select a role to view and edit grants`}
         />
         <PermissionsMatrix />
       </div>

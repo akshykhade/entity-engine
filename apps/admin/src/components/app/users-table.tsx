@@ -4,7 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { SearchIcon, ShieldIcon, UserPlusIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ChangePasswordDialog } from "@/components/app/change-password-dialog";
 import { UserRowActions } from "@/components/app/user-row-actions";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -39,12 +39,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getRoles } from "@/lib/mock/permissions";
-import {
-  getUserRoleName,
-  getUserRoleTone,
-  listAdminUsers,
-} from "@/lib/mock/users";
+import { getRoleLabel, getRoleTone, roleSelectItems } from "@/lib/api/roles";
+import { ApiError } from "@/lib/api/client";
+import { useRoles } from "@/lib/hooks/use-roles";
+import { setUserPassword } from "@/lib/api/users";
+import { useUsers } from "@/lib/hooks/use-users";
 import { toast } from "@/lib/toast";
 import type { AdminUser, UserStatus } from "@/lib/types/entity";
 
@@ -55,8 +54,6 @@ const STATUS_BADGE: Record<UserStatus, string> = {
   invited: "border-amber-500/30 text-amber-700 dark:text-amber-400",
   suspended: "border-destructive/30 text-destructive",
 };
-
-const ROLES = getRoles();
 
 function getVisiblePages(current: number, total: number): number[] {
   if (total <= 5) {
@@ -88,19 +85,16 @@ export function UsersTable({ onSummaryChange }: UsersTableProps = {}) {
   const [status, setStatus] = useState<UserStatus | "all">("all");
   const [page, setPage] = useState(1);
   const [passwordUser, setPasswordUser] = useState<AdminUser | null>(null);
-
-  const users = useMemo(
-    () =>
-      listAdminUsers({
-        search,
-        roleId: roleId === "all" ? undefined : roleId,
-        status,
-        sort: { field: "name", direction: "asc" },
-      }),
-    [search, roleId, status],
-  );
-
-  const totalCount = users.length;
+  const { data: roles = [] } = useRoles();
+  const roleItems = [{ value: "all", label: "All roles" }, ...roleSelectItems(roles)];
+  const { data, isLoading, isError, refetch } = useUsers({
+    search,
+    roleId: roleId === "all" ? undefined : roleId,
+    status,
+    sort: { field: "name", direction: "asc" },
+  });
+  const users = data?.users ?? [];
+  const totalCount = data?.total ?? users.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const start = totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const end = Math.min(page * PAGE_SIZE, totalCount);
@@ -124,8 +118,8 @@ export function UsersTable({ onSummaryChange }: UsersTableProps = {}) {
   useEffect(() => {
     onSummaryChange?.(
       totalCount === 0
-        ? "No users match filters · mock data"
-        : `Showing ${start}–${end} of ${totalCount} · mock data`,
+        ? "No users match filters"
+        : `Showing ${start}–${end} of ${totalCount}`,
     );
   }, [end, onSummaryChange, start, totalCount]);
 
@@ -135,10 +129,17 @@ export function UsersTable({ onSummaryChange }: UsersTableProps = {}) {
     setStatus("all");
   }
 
-  function handleChangePassword(_userId: string) {
-    toast.success("Password updated", {
-      description: "The user will be signed out of all sessions.",
-    });
+  async function handleChangePassword(userId: string, password: string) {
+    try {
+      await setUserPassword(userId, password);
+      toast.success("Password updated", {
+        description: "The user will be signed out of all sessions.",
+      });
+    } catch (error) {
+      toast.error("Password update failed", {
+        description: error instanceof ApiError ? error.message : undefined,
+      });
+    }
   }
 
   function handleImpersonate(user: AdminUser) {
@@ -169,15 +170,16 @@ export function UsersTable({ onSummaryChange }: UsersTableProps = {}) {
           <Select
             value={roleId}
             onValueChange={(value) => setRoleId(value ?? "all")}
+            items={roleItems}
           >
             <SelectTrigger className="w-36 h-8" size="sm">
               <SelectValue placeholder="All roles" />
             </SelectTrigger>
             <SelectPopup>
               <SelectItem value="all">All roles</SelectItem>
-              {ROLES.map((role) => (
+              {roles.map((role) => (
                 <SelectItem key={role.id} value={role.id}>
-                  {role.name}
+                  {role.label ?? role.name}
                 </SelectItem>
               ))}
             </SelectPopup>
@@ -213,7 +215,18 @@ export function UsersTable({ onSummaryChange }: UsersTableProps = {}) {
           </Button>
         </div>
 
-        {users.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center px-6 py-16 text-muted-foreground text-sm">
+            Loading users…
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col justify-center items-center px-6 py-16 text-center">
+            <p className="font-heading text-base">Failed to load users</p>
+            <Button size="sm" variant="outline" className="mt-3" onClick={() => refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : users.length === 0 ? (
           <div className="flex flex-col justify-center items-center px-6 py-16 text-center">
             <p className="font-heading text-base">No users found</p>
             <p className="mt-1 max-w-sm text-muted-foreground text-sm">
@@ -245,7 +258,7 @@ export function UsersTable({ onSummaryChange }: UsersTableProps = {}) {
                   >
                     <TableCell className="ps-4">
                       <div className="flex items-center gap-3">
-                        <Avatar className={`size-8 ${getUserRoleTone(user.roleId)}`}>
+                        <Avatar className={`size-8 ${getRoleTone(user.roleId, roles)}`}>
                           <AvatarFallback className="bg-transparent font-medium text-[11px]">
                             {user.initials}
                           </AvatarFallback>
@@ -260,14 +273,14 @@ export function UsersTable({ onSummaryChange }: UsersTableProps = {}) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {user.roleId === "super-admin" ? (
+                      {roles.find((r) => r.id === user.roleId)?.name === "admin" ? (
                         <Badge variant="outline" className="gap-1">
                           <ShieldIcon className="size-3" />
-                          {getUserRoleName(user.roleId)}
+                          {getRoleLabel(user.roleId, roles)}
                         </Badge>
                       ) : (
                         <Badge variant="outline" size="default">
-                          {getUserRoleName(user.roleId)}
+                          {getRoleLabel(user.roleId, roles)}
                         </Badge>
                       )}
                     </TableCell>
@@ -403,7 +416,7 @@ export function UsersTable({ onSummaryChange }: UsersTableProps = {}) {
         user={passwordUser}
         open={passwordUser !== null}
         onOpenChange={(open) => !open && setPasswordUser(null)}
-        onConfirm={handleChangePassword}
+        onConfirm={(userId, password) => handleChangePassword(userId, password)}
       />
 
     </>

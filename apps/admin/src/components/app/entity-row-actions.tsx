@@ -9,8 +9,11 @@ import {
   MenuPopup,
   MenuTrigger,
 } from "@/components/ui/menu";
-import { getActionLabel } from "@/lib/mock/actions";
 import type { EntityMeta } from "@/lib/types/entity";
+
+function formatActionLabel(action: string): string {
+  return action.charAt(0).toUpperCase() + action.slice(1);
+}
 
 type EntityRowActionsProps = {
   entity: EntityMeta;
@@ -59,7 +62,7 @@ export function EntityRowActions({
             }}
           >
             <RadioIcon />
-            {getActionLabel(entity.slug, action)}
+            {formatActionLabel(action)}
           </MenuItem>
         ))}
         <MenuItem
